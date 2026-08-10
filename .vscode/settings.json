@@ -17,5 +17,13 @@
     "**/.git",
     "**/.venv",
     "**/__pycache__",
+    "openpilot/common/**",
+    "openpilot/selfdrive/**",
+    "openpilot/system/**",
+    "openpilot/tools/**"
+  ],
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}"
   ]
 }
