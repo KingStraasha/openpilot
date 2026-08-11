@@ -174,7 +174,6 @@ class CarControlSP:
 class CarStateSP:
   speedLimit: float = auto_field()
 
-
 # BluePilot: ControllerStateBP for lateral uncertainty (angleState vehicles)
 @auto_dataclass
 class ControllerStateBP:

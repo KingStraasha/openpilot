@@ -64,6 +64,14 @@ void set_alternative_experience(int mode){
   alternative_experience = mode;
 }
 
+void mads_apply_alternative_experience(int mode){
+  mads_set_alternative_experience(&mode);
+}
+
+void tick_mads_state(bool vm, bool acc_main, bool op_allowed, bool braking, bool steering_disengage){
+  mads_state_update(vm, acc_main, op_allowed, braking, steering_disengage);
+}
+
 void set_relay_malfunction(bool c){
   relay_malfunction = c;
 }
@@ -199,6 +207,27 @@ int get_angle_meas_max(void){
   return angle_meas.max;
 }
 
+void set_desired_curvature_last(int t){
+  curvature_state.desired_last = t;
+}
+
+int get_desired_curvature_last(void){
+  return curvature_state.desired_last;
+}
+
+void set_curvature_meas(int min, int max){
+  curvature_state.meas.min = min;
+  curvature_state.meas.max = max;
+}
+
+int get_curvature_meas_min(void){
+  return curvature_state.meas.min;
+}
+
+int get_curvature_meas_max(void){
+  return curvature_state.meas.max;
+}
+
 
 // ***** car specific helpers *****
 
@@ -306,14 +335,6 @@ void mads_set_current_disengage_reason(int reason) {
 
 void set_controls_requested_lateral(bool c){
   m_mads_state.controls_requested_lateral = c;
-}
-
-void mads_apply_alternative_experience(int mode){
-  mads_set_alternative_experience(&mode);
-}
-
-void tick_mads_state(bool vm, bool acc_main, bool op_allowed, bool braking, bool steering_disengage){
-  mads_state_update(vm, acc_main, op_allowed, braking, steering_disengage);
 }
 
 void set_mads_params(bool enable_mads, bool disengage_lateral_on_brake, bool pause_lateral_on_brake){

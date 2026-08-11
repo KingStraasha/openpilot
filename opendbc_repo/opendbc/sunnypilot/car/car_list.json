@@ -512,21 +512,6 @@
     ],
     "package": "Co-Pilot360 Assist+"
   },
-  "Ford Edge 2019-24": {
-    "platform": "FORD_EDGE_MK2",
-    "make": "Ford",
-    "brand": "ford",
-    "model": "Edge",
-    "year": [
-      "2019",
-      "2020",
-      "2021",
-      "2022",
-      "2023",
-      "2024"
-    ],
-    "package": "Co-Pilot360 Assist+"
-  },
   "Ford Escape 2020-22": {
     "platform": "FORD_ESCAPE_MK4",
     "make": "Ford",
@@ -800,24 +785,6 @@
     ],
     "package": "Co-Pilot360 Assist"
   },
-  "Ford Mondeo 2014-2022": {
-    "platform": "FORD_MONDEO_MK5",
-    "make": "Ford",
-    "brand": "ford",
-    "model": "Mondeo",
-    "year": [
-      "2014",
-      "2015",
-      "2016",
-      "2017",
-      "2018",
-      "2019",
-      "2020",
-      "2021",
-      "2022"
-    ],
-    "package": "Adaptive Cruise Control with Lane Centering"
-  },
   "Ford Mustang Mach-E 2021-24": {
     "platform": "FORD_MUSTANG_MACH_E_MK1",
     "make": "Ford",
@@ -1054,7 +1021,7 @@
     ],
     "package": "All"
   },
-  "Honda Accord Hybrid 2023-25": {
+  "Honda Accord Hybrid 2023-26": {
     "platform": "HONDA_ACCORD_11G",
     "make": "Honda",
     "brand": "honda",
@@ -1062,17 +1029,20 @@
     "year": [
       "2023",
       "2024",
-      "2025"
+      "2025",
+      "2026"
     ],
     "package": "All"
   },
-  "Honda City (Brazil only) 2023": {
+  "Honda City (Brazil only) 2023-25": {
     "platform": "HONDA_CITY_7G",
     "make": "Honda",
     "brand": "honda",
     "model": "City (Brazil only)",
     "year": [
-      "2023"
+      "2023",
+      "2024",
+      "2025"
     ],
     "package": "All"
   },
@@ -1190,7 +1160,7 @@
       "2020",
       "2021"
     ],
-    "package": "Honda Sensing"
+    "package": "All"
   },
   "Honda CR-V 2015-16": {
     "platform": "HONDA_CRV",
@@ -2861,6 +2831,21 @@
     "make": "Nissan",
     "brand": "nissan",
     "model": "Leaf",
+    "year": [
+      "2018",
+      "2019",
+      "2020",
+      "2021",
+      "2022",
+      "2023"
+    ],
+    "package": "ProPILOT Assist"
+  },
+  "Nissan Leaf IC 2018-23": {
+    "platform": "NISSAN_LEAF_IC",
+    "make": "Nissan",
+    "brand": "nissan",
+    "model": "Leaf IC",
     "year": [
       "2018",
       "2019",
