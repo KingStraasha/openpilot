@@ -1,4 +1,5 @@
 import os
+import sys
 import subprocess
 import bootstrap_icons
 import imgui
@@ -82,7 +83,7 @@ def write_car_fingerprint_to_dbc_header(target, source, env):
 
 def generate_event_extractors(target, source, env):
   subprocess.check_call([
-    "python3",
+    sys.executable,
     "openpilot/tools/jotpluggler/generate_event_extractors.py",
     os.path.realpath(BASEDIR),
     str(target[0]),
@@ -106,7 +107,7 @@ libs = [replay_lib, common, messaging, visionipc, cereal, File(f"{imgui.LIB_DIR}
 if arch == "Darwin":
   jot_env["FRAMEWORKS"] = ["OpenGL", "Cocoa", "IOKit", "CoreFoundation", "CoreVideo", "CoreMedia", "VideoToolbox"]
 else:
-  libs += ["GL", "dl"]
+  libs += ["GL", "dl", "rt", "stdc++fs"]
 
 program = jot_env.Program("jotpluggler", jot_env.Glob("*.cc"), LIBS=libs)
 jot_env.Depends(program, generated_dbc_stamp)

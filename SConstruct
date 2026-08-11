@@ -88,7 +88,7 @@ acados_include_dirs = [
 allowed_system_libs = {
   "EGL", "GLESv2", "GL",
   "Qt5Charts", "Qt5Core", "Qt5Gui", "Qt5Widgets",
-  "dl", "drm", "gbm", "m", "pthread",
+  "dl", "drm", "gbm", "m", "pthread", "rt", "stdc++fs",
 }
 
 def _resolve_lib(env, name):
@@ -166,6 +166,8 @@ env = Environment(
   tools=["default", "cython", "compilation_db", "rednose_filter"],
   toolpath=["#site_scons/site_tools", "#rednose_repo/site_scons/site_tools"],
 )
+env["LINK"] = env["CXX"]
+env["SHLINK"] = env["CXX"]
 # SCons' Darwin linker tool doesn't define the variables used to expand RPATH.
 if arch == "Darwin":
   env["RPATHPREFIX"] = "-Wl,-rpath,"
@@ -250,10 +252,13 @@ def prune_cache_dir(target=None, source=None, env=None):
 
 # ********** start building stuff **********
 
+env["LINK"] = env["CXX"]
+env["SHLINK"] = env["CXX"]
+
 # Build common module
 SConscript(['openpilot/common/SConscript'])
 Import('_common')
-common = [_common, 'json11', 'zmq']
+common = [_common, 'json11', 'zmq', _common, 'json11', 'zmq']
 Export('common')
 
 # Build messaging (cereal + msgq + socketmaster + their dependencies)

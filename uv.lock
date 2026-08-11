@@ -1,9 +1,15 @@
 version = 1
 revision = 3
 requires-python = ">=3.12.3, <3.13"
+required-markers = [
+    "platform_machine == 'x86_64' and sys_platform == 'linux'",
+]
 
 [manifest]
-overrides = [{ name = "opendbc", editable = "opendbc_repo" }]
+overrides = [
+    { name = "libdatachannel-py", marker = "sys_platform == 'never'" },
+    { name = "opendbc", editable = "opendbc_repo" },
+]
 
 [[package]]
 name = "anyio"
@@ -224,6 +230,16 @@ wheels = [
 ]
 
 [[package]]
+name = "comma-deps-libjpeg"
+version = "3.1.0.post92"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/21/68/0b1eef2c4ac176ef8b37699a67447393ce942c968587bb56b0bccd83d6b7/comma_deps_libjpeg-3.1.0.post92-py3-none-macosx_11_0_arm64.whl", hash = "sha256:57884fbab82c68240529b0955b08490b1c12f8ae2466605f965a2d0a0a8771c1", size = 253481, upload-time = "2026-07-08T04:42:45.318Z" },
+    { url = "https://files.pythonhosted.org/packages/be/8e/9bd8fded18243f9cbd486df142b645d5004aab3a81bf8744db7e6f21315c/comma_deps_libjpeg-3.1.0.post92-py3-none-manylinux_2_28_aarch64.whl", hash = "sha256:88219351e4b3d550c403a8143613977d55612abcd3d3a047caad1d391c7eae38", size = 258614, upload-time = "2026-07-08T04:42:48.916Z" },
+    { url = "https://files.pythonhosted.org/packages/7b/0a/067fe565f2a9b21b4e5d4d04d83e9a47cd2e3d993d79e05baaeaae2fb0b6/comma_deps_libjpeg-3.1.0.post92-py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:b47ff662cabd8a0c564fd12f64de451a8806990d80712193b6cd7c23fba2ce6f", size = 269972, upload-time = "2026-07-08T04:42:52.254Z" },
+]
+
+[[package]]
 name = "comma-deps-libusb"
 version = "1.0.29.post93"
 source = { registry = "https://pypi.org/simple" }
@@ -231,6 +247,16 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/56/a3/4fb912d8af7af134a0a54eeb893beecc9e1cb3ed8371e055319faa74a580/comma_deps_libusb-1.0.29.post93-py3-none-macosx_11_0_arm64.whl", hash = "sha256:1dba5fe7832877994ea9ff3daf056851f1b5c9a47552525af08b35074c5ff65e", size = 102339, upload-time = "2026-07-08T19:32:19.785Z" },
     { url = "https://files.pythonhosted.org/packages/ce/ad/6d36327352fa1030997409ee650de3f307cc26e3fec4f2a8ea6254430e6a/comma_deps_libusb-1.0.29.post93-py3-none-manylinux_2_28_aarch64.whl", hash = "sha256:c2a29c888668cb4c0ab549ac71206d6b53da8d2db5e581a55a113574aaabe950", size = 94439, upload-time = "2026-07-08T19:32:23.104Z" },
     { url = "https://files.pythonhosted.org/packages/84/47/f4f2da67db202bacc3fa578fdebdb916f45c97bee0c3d2c5fbe845a6f129/comma_deps_libusb-1.0.29.post93-py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:f136dbbfc461d228378731361cc66a90a483e17d55f8ba43f23eeab6bcf41963", size = 93461, upload-time = "2026-07-08T19:32:26.434Z" },
+]
+
+[[package]]
+name = "comma-deps-libyuv"
+version = "1922.0.post95"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d3/96/93055edcc86148eab09cb59c116667a1fd30d56db2f8e60820df6993c08f/comma_deps_libyuv-1922.0.post95-py3-none-macosx_11_0_arm64.whl", hash = "sha256:95112e0bf41108b0de359c4a9563d8f488ceeda8b4cbc5d2e30c77d5f1944199", size = 269555, upload-time = "2026-07-09T03:20:27.373Z" },
+    { url = "https://files.pythonhosted.org/packages/d3/80/897a7668b53f90203bd1bf18cfb260767217f50ec107bddb9a9f0dbad510/comma_deps_libyuv-1922.0.post95-py3-none-manylinux_2_28_aarch64.whl", hash = "sha256:b456db397038e85777dbb65e5b53928b7c0ddfeb93c3b2c166724b754e488f2c", size = 268387, upload-time = "2026-07-09T03:20:30.803Z" },
+    { url = "https://files.pythonhosted.org/packages/cb/8b/47718a08c185d45e129daf6c44e8ecb7f008b33e548b51d45d5fdf8cde15/comma_deps_libyuv-1922.0.post95-py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:3eb682b0827e1c9ba2d1a7eac0de082b9fcd6c9552421a22782e1b0118225031", size = 273340, upload-time = "2026-07-09T03:20:34.031Z" },
 ]
 
 [[package]]
@@ -617,14 +643,6 @@ wheels = [
 name = "libdatachannel-py"
 version = "2026.1.0.dev2"
 source = { registry = "https://pypi.org/simple" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/46/2f/68e8306327ddef4b2133d2efb163cb05b319759ce8bd50b8b32dcd03dd95/libdatachannel_py-2026.1.0.dev2-cp312-cp312-macosx_15_0_arm64.whl", hash = "sha256:6607fa1439e1b5bfceecd387c433470c9d45e439c3c06fa064f5c4669ad7e582", size = 1213155, upload-time = "2026-05-19T03:37:12.796Z" },
-    { url = "https://files.pythonhosted.org/packages/fc/e3/10aed36ffaf1744795322aae612db777991575b72a9f04e2c677c2c022bf/libdatachannel_py-2026.1.0.dev2-cp312-cp312-macosx_26_0_arm64.whl", hash = "sha256:a060b1250f57d1fccb36e3a6b36ac8f4fd34926a6b51c564e787e8b7206458aa", size = 1224706, upload-time = "2026-05-19T03:37:12.679Z" },
-    { url = "https://files.pythonhosted.org/packages/09/a9/103fc647a8f9c721ab140fe8d2f8dbd90817e917ca763c4eb0f843fe247e/libdatachannel_py-2026.1.0.dev2-cp312-cp312-manylinux_2_35_aarch64.whl", hash = "sha256:0b8aa3be2fa3654ea24f882756d6599e847de866a44f7a291c60994548a2debb", size = 1638879, upload-time = "2026-05-19T03:37:18.138Z" },
-    { url = "https://files.pythonhosted.org/packages/09/a8/0dc7d3fe80fc247ec165dbd455bc2a1a307ef65702a43e24473202c2bf42/libdatachannel_py-2026.1.0.dev2-cp312-cp312-manylinux_2_35_x86_64.whl", hash = "sha256:339a79fcbc8c6caf91c620f6e4a0f1b8ccb6a941a966d10a3135c980ae4651a6", size = 1718006, upload-time = "2026-05-19T03:37:11.891Z" },
-    { url = "https://files.pythonhosted.org/packages/6d/86/30904a8753e9db60d8c3cf8efda09585fc68f2004d3d7aa2910c93a8eed5/libdatachannel_py-2026.1.0.dev2-cp312-cp312-manylinux_2_38_aarch64.whl", hash = "sha256:b9f476cb065b50856ab2e53bf774ccca9c6a66454b7ce903aaf6dfcdef2a4482", size = 1643757, upload-time = "2026-05-19T03:37:12.207Z" },
-    { url = "https://files.pythonhosted.org/packages/d7/9d/1e10131396d28e84a8088a63c14978cc215f6677dc85acdd96b6068f0664/libdatachannel_py-2026.1.0.dev2-cp312-cp312-manylinux_2_38_x86_64.whl", hash = "sha256:1f31db7347549edcd69fcc1ecb8b31e7183894808ccf9387afc49a4d68debaae", size = 1751748, upload-time = "2026-05-19T03:37:06.98Z" },
-]
 
 [[package]]
 name = "libusb-package"
@@ -804,12 +822,20 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "comma-deps-acados" },
+    { name = "comma-deps-bootstrap-icons" },
+    { name = "comma-deps-bzip2" },
     { name = "comma-deps-capnproto" },
     { name = "comma-deps-catch2" },
+    { name = "comma-deps-eigen" },
     { name = "comma-deps-ffmpeg" },
     { name = "comma-deps-gcc-arm-none-eabi" },
     { name = "comma-deps-git-lfs" },
+    { name = "comma-deps-imgui" },
     { name = "comma-deps-json11" },
+    { name = "comma-deps-libjpeg" },
+    { name = "comma-deps-libusb" },
+    { name = "comma-deps-libyuv" },
+    { name = "comma-deps-ncurses" },
     { name = "comma-deps-raylib" },
     { name = "comma-deps-zeromq" },
     { name = "comma-deps-zstd" },
@@ -877,16 +903,24 @@ standalone = [
 requires-dist = [
     { name = "codespell", marker = "extra == 'testing'" },
     { name = "comma-deps-acados" },
+    { name = "comma-deps-bootstrap-icons" },
     { name = "comma-deps-bootstrap-icons", marker = "extra == 'tools'" },
+    { name = "comma-deps-bzip2" },
     { name = "comma-deps-bzip2", marker = "extra == 'tools'" },
     { name = "comma-deps-capnproto" },
     { name = "comma-deps-catch2" },
+    { name = "comma-deps-eigen" },
     { name = "comma-deps-ffmpeg" },
     { name = "comma-deps-gcc-arm-none-eabi" },
     { name = "comma-deps-git-lfs" },
+    { name = "comma-deps-imgui" },
     { name = "comma-deps-imgui", marker = "extra == 'tools'" },
     { name = "comma-deps-json11" },
+    { name = "comma-deps-libjpeg" },
+    { name = "comma-deps-libusb" },
     { name = "comma-deps-libusb", marker = "extra == 'tools'" },
+    { name = "comma-deps-libyuv" },
+    { name = "comma-deps-ncurses" },
     { name = "comma-deps-ncurses", marker = "extra == 'tools'" },
     { name = "comma-deps-raylib" },
     { name = "comma-deps-zeromq" },
@@ -1147,7 +1181,7 @@ wheels = [
 
 [[package]]
 name = "pytest-xdist"
-version = "3.7.1.dev24+g2b4372b"
+version = "3.7.1.dev24+g2b4372bd6"
 source = { git = "https://github.com/sshane/pytest-xdist?rev=2b4372bd62699fb412c4fe2f95bf9f01bd2018da#2b4372bd62699fb412c4fe2f95bf9f01bd2018da" }
 dependencies = [
     { name = "execnet" },
@@ -1392,7 +1426,7 @@ name = "teleoprtc"
 version = "1.0.1"
 source = { editable = "teleoprtc_repo" }
 dependencies = [
-    { name = "libdatachannel-py" },
+    { name = "libdatachannel-py", marker = "sys_platform == 'never'" },
 ]
 
 [package.metadata]

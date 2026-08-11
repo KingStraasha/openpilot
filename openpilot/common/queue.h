@@ -8,6 +8,16 @@ template <class T>
 class SafeQueue {
 public:
   SafeQueue() = default;
+  SafeQueue(const SafeQueue&) = delete;
+  SafeQueue& operator=(const SafeQueue&) = delete;
+  SafeQueue(SafeQueue&& o) noexcept : m(), cv(), q(std::move(o.q)) {}
+  SafeQueue& operator=(SafeQueue&& o) noexcept {
+    if (this != &o) {
+      std::scoped_lock lk(m, o.m);
+      q = std::move(o.q);
+    }
+    return *this;
+  }
 
   void push(const T& v) {
     {

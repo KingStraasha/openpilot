@@ -30,6 +30,14 @@ dependencies = [
   "comma-deps-json11",
   "comma-deps-git-lfs",
   "comma-deps-gcc-arm-none-eabi",
+  "comma-deps-bzip2",
+  "comma-deps-eigen",
+  "comma-deps-ncurses",
+  "comma-deps-bootstrap-icons",
+  "comma-deps-libusb",
+  "comma-deps-libjpeg",
+  "comma-deps-libyuv",
+  "comma-deps-imgui",
 
   # logging
   "pyzmq",
@@ -199,9 +207,11 @@ unresolved-attribute = "ignore"  # many from capnp and Cython modules
 
 [tool.uv]
 python-preference = "only-managed"
+required-environments = ["sys_platform == 'linux' and platform_machine == 'x86_64'"]
 default-groups = ["standalone"]
 override-dependencies = [
   "opendbc",  # panda pins opendbc from git for standalone use; always use our submodule
+  "libdatachannel-py; sys_platform == 'never'",
 ]
 
 [tool.uv.sources]

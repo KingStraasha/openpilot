@@ -1,3 +1,4 @@
+import sys
 Import('env', 'common', 'msgq')
 
 cereal_dir = Dir('.')
@@ -14,8 +15,8 @@ env.Command([f'gen/cpp/{s}.c++' for s in all_output] + [f'gen/cpp/{s}.h' for s i
 cereal = env.Library('cereal', [f'gen/cpp/{s}.c++' for s in all_output])
 
 # Build messaging
-services_h = env.Command(['services.h'], ['services.py'], 'python3 ' + cereal_dir.path + '/services.py > $TARGET')
-env.Program('messaging/bridge', ['messaging/bridge.cc', 'messaging/msgq_to_zmq.cc', 'messaging/bridge_zmq.cc'], LIBS=[msgq, common, 'pthread'])
+services_h = env.Command(['services.h'], ['services.py'], f'{sys.executable} ' + cereal_dir.path + '/services.py > $TARGET')
+env.Program('messaging/bridge', ['messaging/bridge.cc', 'messaging/msgq_to_zmq.cc', 'messaging/bridge_zmq.cc'], LIBS=[msgq, common, 'pthread', '-lstdc++'])
 
 socketmaster = env.Library('socketmaster', ['messaging/socketmaster.cc'])
 

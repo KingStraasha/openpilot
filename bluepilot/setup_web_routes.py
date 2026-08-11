@@ -49,7 +49,7 @@ def main():
     print()
 
     # Check if running from correct directory
-    if not os.path.exists("bluepilot/backend/web_routes_server.py"):
+    if not os.path.exists("bluepilot/backend/bp_portal.py"):
         print("Error: Please run this script from the openpilot root directory")
         sys.exit(1)
 
@@ -66,15 +66,14 @@ def main():
 
     # Backend
     print("Backend:")
-    all_ok &= check_file("bluepilot/backend/web_routes_server.py", "  Web server (Python stdlib)")
+    all_ok &= check_file("bluepilot/backend/bp_portal.py", "  Web server (bp_portal.py)")
     all_ok &= check_file("bluepilot/backend/__init__.py", "  Backend module init")
     print()
 
     # Frontend
     print("Frontend (deployed):")
     all_ok &= check_file("bluepilot/web/public/index.html", "  index.html")
-    all_ok &= check_file("bluepilot/web/public/styles.css", "  styles.css")
-    all_ok &= check_file("bluepilot/web/public/app.js", "  app.js")
+    all_ok &= check_file("bluepilot/web/public/manifest.webmanifest", "  manifest.webmanifest")
     print()
 
     # Check params system (optional)
