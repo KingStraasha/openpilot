@@ -31,5 +31,9 @@
   "githubPullRequests.remotes": [
     "fork",
     "origin"
-  ]
+  ],
+  "antigravity.agent.provider": "antigravity-2.0",
+  "antigravity.agent.useLocalDaemon": true,
+  "antigravity.agent.daemonPort": 45481,
+  "antigravity.agent.daemonHttpPort": 39927
 }

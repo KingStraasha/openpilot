@@ -1,5 +1,19 @@
 {
   "versions": {
+    "7.0.0": {
+      "agnos_version": "18.5",
+      "changes": [
+        "BluePilot 7.0.0 (bp70) release sync with full Comma 4 (MICI) and Comma 3X (TIZI) hardware support",
+        "Updated AGNOS version support to 18.5",
+        "Added full branch migration and hardware detection support for Comma 4 devices",
+        "Antigravity 2.0 integration and local daemon autodiscovery alignment"
+      ],
+      "fixes": [
+        "Fixed Comma 4 (MICI) device type assertions in hardware detection layer",
+        "Fixed version check and branch migration errors when installing bp70 on Comma 4 devices"
+      ],
+      "removals": []
+    },
     "6.1.0": {
       "agnos_version": "17.2",
       "changes": [
