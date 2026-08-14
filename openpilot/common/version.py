@@ -28,11 +28,6 @@ SP_BRANCH_MIGRATIONS = {
   ("tizi", "release3-staging"): "release-tizi-staging",
   ("mici", "release3"): "release-mici",
   ("mici", "release3-staging"): "release-mici-staging",
-  ("mici", "bp70"): "release-mici",
-  ("mici", "release-bp70"): "release-mici",
-  ("mici", "bp7"): "release-mici",
-  ("mici", "7.0.0"): "release-mici",
-  ("mici", "release"): "release-mici",
   ("mici", "master"): "master-mici",
 }
 

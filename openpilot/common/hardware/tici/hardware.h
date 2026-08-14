@@ -14,7 +14,10 @@ public:
   static std::string get_name() {
     static const std::string name = []() {
       std::string model = util::read_file("/sys/firmware/devicetree/base/model");
-      return util::strip(model.substr(std::string("comma ").size()));
+      if (model.rfind("comma ", 0) == 0) {
+        return util::strip(model.substr(std::string("comma ").size()));
+      }
+      return util::strip(model);
     }();
     return name;
   }
@@ -23,7 +26,9 @@ public:
     static const std::map<std::string, cereal::InitData::DeviceType> device_map = {
       {"tici", cereal::InitData::DeviceType::TICI},
       {"tizi", cereal::InitData::DeviceType::TIZI},
-      {"mici", cereal::InitData::DeviceType::MICI}
+      {"mici", cereal::InitData::DeviceType::MICI},
+      {"4", cereal::InitData::DeviceType::MICI},
+      {"four", cereal::InitData::DeviceType::MICI}
     };
     static const auto it = device_map.find(get_name());
     assert(it != device_map.end());

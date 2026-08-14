@@ -67,7 +67,7 @@ void branchMigration() {
       migrated_branch = "release-tizi-staging";
     }
   } else if (device_type == cereal::InitData::DeviceType::MICI) {
-    if (BRANCH_STR == "release3" || BRANCH_STR == "bp70" || BRANCH_STR == "release-bp70" || BRANCH_STR == "bp7" || BRANCH_STR == "7.0.0" || BRANCH_STR == "release") {
+    if (BRANCH_STR == "release3") {
       migrated_branch = "release-mici";
     } else if (BRANCH_STR == "release3-staging") {
       migrated_branch = "release-mici-staging";
