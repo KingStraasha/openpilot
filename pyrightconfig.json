@@ -1,0 +1,19 @@
+{
+  "include": [
+    "."
+  ],
+  "exclude": [
+    "**/__pycache__",
+    ".venv"
+  ],
+  "venvPath": ".",
+  "venv": ".venv",
+  "extraPaths": [
+    ".",
+    "opendbc_repo",
+    "openpilot",
+    "sunnypilot"
+  ],
+  "pythonVersion": "3.12",
+  "pythonPlatform": "Linux"
+}

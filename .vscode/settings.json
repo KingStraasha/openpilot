@@ -12,16 +12,27 @@
   },
   "search.exclude": {
     "**/.git": true,
-    "**/.venv": true,
     "**/__pycache__": true
   },
   "files.exclude": {
     "**/.git": true,
-    "**/.venv": true,
     "**/__pycache__": true
   },
   "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+  "python.interpreterPath": "${workspaceFolder}/.venv/bin/python",
+  "python.venvPath": "${workspaceFolder}",
+  "python.venvFolders": [
+    ".venv"
+  ],
+  "python.terminal.activateEnvironment": true,
+  "python.testing.pytestPath": "${workspaceFolder}/.venv/bin/pytest",
   "python.analysis.extraPaths": [
+    "${workspaceFolder}",
+    "${workspaceFolder}/opendbc_repo",
+    "${workspaceFolder}/openpilot",
+    "${workspaceFolder}/sunnypilot"
+  ],
+  "python.autoComplete.extraPaths": [
     "${workspaceFolder}",
     "${workspaceFolder}/opendbc_repo",
     "${workspaceFolder}/openpilot",
