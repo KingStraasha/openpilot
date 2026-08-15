@@ -1,0 +1,83 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "SCons: Build BluePilot",
+      "type": "shell",
+      "command": "scons -j$(nproc)",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "SCons: Clean Build",
+      "type": "shell",
+      "command": "scons -c",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Ruff: Lint Check",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/ruff check .",
+      "group": "test",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Ruff: Format Code",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/ruff format .",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Pytest: Run Tests",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/pytest openpilot",
+      "group": "test",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Pytest: Ford Controller Tests",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/pytest opendbc_repo/opendbc/car/ford/tests/",
+      "group": "test",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "BluePilot: Run Web Portal",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/python -m bluepilot.backend.bp_portal",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    }
+  ]
+}

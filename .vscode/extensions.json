@@ -1,8 +1,11 @@
 {
   "recommendations": [
     "ms-python.python",
-    "ms-vscode.cpptools",
+    "ms-python.debugpy",
+    "charliermarsh.ruff",
+    "llvm-vs-code-extensions.vscode-clangd",
+    "eamodio.gitlens",
     "elagil.pre-commit-helper",
-    "charliermarsh.ruff"
+    "streetsidesoftware.code-spell-checker"
   ]
 }
