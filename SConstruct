@@ -10,7 +10,7 @@ import numpy as np
 import SCons.Errors
 from SCons.Defaults import _stripixes
 
-TICI = os.path.isfile('/TICI')
+TICI = os.path.isfile('/TICI') or os.path.isfile('/MICI') or os.path.isfile('/AGNOS')
 
 SCons.Warnings.warningAsException(True)
 

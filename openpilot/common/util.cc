@@ -4,26 +4,6 @@
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 #include <sys/resource.h>
-#include <new>
-#include <sstream>
-
-namespace std {
-  void __throw_bad_array_new_length() {
-    throw bad_array_new_length();
-  }
-}
-
-extern "C" {
-  void _ZNSt7__cxx1119basic_ostringstreamIcSt11char_traitsIcESaIcEEC1Ev(void* p) {
-    new (p) std::ostringstream();
-  }
-  void _ZNSt7__cxx1118basic_stringstreamIcSt11char_traitsIcESaIcEEC1Ev(void* p) {
-    new (p) std::stringstream();
-  }
-  void _ZNSt15__exception_ptr13exception_ptr9_M_addrefEv(void* self) {}
-  void _ZNSt15__exception_ptr13exception_ptr10_M_releaseEv(void* self) {}
-}
-
 #include <cassert>
 #include <cerrno>
 #include <cstring>
