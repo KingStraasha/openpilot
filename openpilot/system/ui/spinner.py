@@ -7,6 +7,9 @@ from openpilot.system.ui.lib.application import gui_app
 from openpilot.system.ui.lib.text_measure import measure_text_cached
 from openpilot.system.ui.text import wrap_text
 from openpilot.system.ui.widgets import Widget
+# BluePilot: check is_bluepilot for spinner logo
+from openpilot.common.bluepilot import is_bluepilot
+# End BluePilot
 
 # Constants
 if gui_app.big_ui():
@@ -35,7 +38,15 @@ def clamp(value, min_value, max_value):
 class Spinner(Widget):
   def __init__(self):
     super().__init__()
-    self._comma_texture = gui_app.texture("../../sunnypilot/selfdrive/assets/images/spinner_sunnypilot.png", TEXTURE_SIZE, TEXTURE_SIZE)
+    # BluePilot: load spinner_bluepilot if is_bluepilot()
+    if is_bluepilot():
+      try:
+        self._comma_texture = gui_app.texture("images/spinner_bluepilot.png", TEXTURE_SIZE, TEXTURE_SIZE)
+      except Exception:
+        self._comma_texture = gui_app.texture("../../sunnypilot/selfdrive/assets/images/spinner_sunnypilot.png", TEXTURE_SIZE, TEXTURE_SIZE)
+    else:
+      self._comma_texture = gui_app.texture("../../sunnypilot/selfdrive/assets/images/spinner_sunnypilot.png", TEXTURE_SIZE, TEXTURE_SIZE)
+    # End BluePilot
     self._spinner_texture = gui_app.texture("images/spinner_track.png", TEXTURE_SIZE, TEXTURE_SIZE, alpha_premultiply=True)
     self._rotation = 0.0
     self._progress: int | None = None

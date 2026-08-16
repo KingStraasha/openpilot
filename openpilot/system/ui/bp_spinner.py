@@ -76,13 +76,17 @@ class BPSpinner(Widget):
     super().__init__()
 
     try:
-      self._comma_texture = gui_app.texture("../../sunnypilot/selfdrive/assets/images/spinner_sunnypilot.png",
+      self._comma_texture = gui_app.texture("images/spinner_bluepilot.png",
                                             COMMA_IMAGE_SIZE, COMMA_IMAGE_SIZE)
     except Exception:
       try:
-        self._comma_texture = gui_app.texture("images/spinner_comma.png", COMMA_IMAGE_SIZE, COMMA_IMAGE_SIZE)
+        self._comma_texture = gui_app.texture("../../sunnypilot/selfdrive/assets/images/spinner_sunnypilot.png",
+                                              COMMA_IMAGE_SIZE, COMMA_IMAGE_SIZE)
       except Exception:
-        self._comma_texture = None
+        try:
+          self._comma_texture = gui_app.texture("images/spinner_comma.png", COMMA_IMAGE_SIZE, COMMA_IMAGE_SIZE)
+        except Exception:
+          self._comma_texture = None
 
     try:
       self._spinner_texture = gui_app.texture("images/spinner_track.png", TEXTURE_SIZE, TEXTURE_SIZE, alpha_premultiply=True)

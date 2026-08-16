@@ -12,7 +12,8 @@ from openpilot.selfdrive.ui.bp.lib.theme_scene import (
   _resolve_tint, load_scene_spec,
 )
 
-PACKS_DIR = os.path.join(BASEDIR, "selfdrive", "assets", "bp_themes")
+_bundled_openpilot = os.path.join(BASEDIR, "openpilot", "selfdrive", "assets", "bp_themes")
+PACKS_DIR = _bundled_openpilot if os.path.isdir(_bundled_openpilot) else os.path.join(BASEDIR, "selfdrive", "assets", "bp_themes")
 
 GOOD = {
   "version": 1,

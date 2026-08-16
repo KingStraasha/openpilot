@@ -93,16 +93,33 @@ DEVICE_TYPE="$(detect_device_type)"
 readonly BOOT_IMG="/usr/comma/bg.jpg"
 readonly BOOT_IMG_BKP="${BOOT_IMG}.backup"
 
-# Select the appropriate boot image based on device type
+# Select the appropriate boot image based on device type (supporting both nested openpilot/ and legacy layouts)
 if [ "$DEVICE_TYPE" = "mici" ]; then
-    readonly BLUEPILOT_BOOT_IMG="/data/openpilot/selfdrive/assets/img_bluepilot_boot_mici.jpg"
+    if [ -f "/data/openpilot/openpilot/selfdrive/assets/img_bluepilot_boot_mici.jpg" ]; then
+        readonly BLUEPILOT_BOOT_IMG="/data/openpilot/openpilot/selfdrive/assets/img_bluepilot_boot_mici.jpg"
+    else
+        readonly BLUEPILOT_BOOT_IMG="/data/openpilot/selfdrive/assets/img_bluepilot_boot_mici.jpg"
+    fi
 else
-    readonly BLUEPILOT_BOOT_IMG="/data/openpilot/selfdrive/assets/img_bluepilot_boot.jpg"
+    if [ -f "/data/openpilot/openpilot/selfdrive/assets/img_bluepilot_boot.jpg" ]; then
+        readonly BLUEPILOT_BOOT_IMG="/data/openpilot/openpilot/selfdrive/assets/img_bluepilot_boot.jpg"
+    else
+        readonly BLUEPILOT_BOOT_IMG="/data/openpilot/selfdrive/assets/img_bluepilot_boot.jpg"
+    fi
 fi
 
 # Spinner logo (loading screen): source stored outside LFS; dest is what spinner.py loads
-readonly BLUEPILOT_SPINNER_SRC="/data/openpilot/selfdrive/assets/images/spinner_bluepilot.png"
-readonly SPINNER_DEST="/data/openpilot/sunnypilot/selfdrive/assets/images/spinner_sunnypilot.png"
+if [ -f "/data/openpilot/openpilot/selfdrive/assets/images/spinner_bluepilot.png" ]; then
+    readonly BLUEPILOT_SPINNER_SRC="/data/openpilot/openpilot/selfdrive/assets/images/spinner_bluepilot.png"
+else
+    readonly BLUEPILOT_SPINNER_SRC="/data/openpilot/selfdrive/assets/images/spinner_bluepilot.png"
+fi
+
+if [ -d "/data/openpilot/openpilot/sunnypilot/selfdrive/assets/images" ]; then
+    readonly SPINNER_DEST="/data/openpilot/openpilot/sunnypilot/selfdrive/assets/images/spinner_sunnypilot.png"
+else
+    readonly SPINNER_DEST="/data/openpilot/sunnypilot/selfdrive/assets/images/spinner_sunnypilot.png"
+fi
 
 ###############################################################################
 # Partition Management Functions
