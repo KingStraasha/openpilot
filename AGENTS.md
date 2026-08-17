@@ -1,7 +1,7 @@
 # AGENTS.md - BluePilot Codebase Guide
 
-**Version:** 5.0.0 → 6.0.0 (in development)
-**Last Updated:** 2026-02-16
+**Version:** 7.0.0
+**Last Updated:** 2026-08-17
 **Target Audience:** AI agents, developers, and contributors
 
 This document provides a comprehensive guide to understanding, navigating, and modifying the BluePilot codebase. It is designed to help AI agents and human developers quickly understand the architecture, conventions, and key systems.
@@ -33,13 +33,13 @@ This document provides a comprehensive guide to understanding, navigating, and m
 **BluePilot** is a Ford-focused fork of SunnyPilot (which itself forks OpenPilot/commaai).
 
 ### Key Information
-- **Current Version:** 5.0.0
-- **Based On:** SunnyPilot 2025.003.0.0
+- **Current Version:** 7.0.0
+- **Based On:** SunnyPilot 2026.003.000 (staging)
 - **Repository:** https://github.com/BluePilotDev/bluepilot
-- **Current Branch:** `bp-6.0-ui-refactor` (active development)
+- **Current Branch:** `bp70` (active development / release branch)
 - **Main Dev Branch:** `bp-dev`
-- **Platform:** comma 3X device (TICI) and MICI devices
-- **AGNOS:** 13.1
+- **Platform:** Comma 4 (MICI) and Comma 3X (TIZI/TICI)
+- **AGNOS:** 18.5
 - **Focus:** Ford-specific enhancements for lateral/longitudinal control, hybrid vehicle support, and enhanced UI
 
 ### What Makes BluePilot Unique
@@ -249,7 +249,7 @@ BluePilotDev/
 ├── rednose_repo/                 # State estimation library
 ├── tinygrad_repo/                # Neural network framework
 │
-├── BPVERSION                     # Current version (5.0.0)
+├── BPVERSION                     # Current version (7.0.0)
 ├── BP_CHANGES.json               # Structured changelog
 ├── BP-5.0-RELEASE.md             # Release notes
 ├── SConstruct                    # SCons build configuration
@@ -318,7 +318,7 @@ opendbc_repo/opendbc/car/ford/carcontroller.py
 
 ## BluePilot Portal
 
-The BluePilot Portal is a web-based interface for managing routes, viewing system metrics, and configuring device settings. It runs on the comma 3X/MICI device and is accessible via browser.
+The BluePilot Portal is a web-based interface for managing routes, viewing system metrics, and configuring device settings. It runs on the Comma 4 (MICI) and Comma 3X (TICI/TIZI) devices and is accessible via browser.
 
 ### Architecture
 
@@ -1091,6 +1091,6 @@ When contributing to BluePilot:
 
 ---
 
-**Document Version:** 1.0
-**Last Updated:** 2026-02-16
-**BluePilot Version:** 5.0.0 → 6.0.0 (in development)
+**Document Version:** 2.0
+**Last Updated:** 2026-08-17
+**BluePilot Version:** 7.0.0
