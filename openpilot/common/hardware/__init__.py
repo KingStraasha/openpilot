@@ -2,15 +2,16 @@ import os
 from typing import cast
 
 from openpilot.common.hardware.base import HardwareBase
-from openpilot.common.hardware.tici.hardware import Tici
-from openpilot.common.hardware.pc.hardware import Pc
+from openpilot.common.hardware.comma.hardware import HardwareComma
+from openpilot.common.hardware.pc.hardware import HardwarePc
 
-TICI = os.path.isfile('/TICI') or os.path.isfile('/MICI') or os.path.isfile('/AGNOS')
 AGNOS = os.path.isfile('/AGNOS')
-PC = not TICI
+COMMA_HARDWARE = AGNOS or os.path.isfile('/TICI') or os.path.isfile('/MICI')
+TICI = COMMA_HARDWARE
+PC = not COMMA_HARDWARE
 
 
-if TICI:
-  HARDWARE = cast(HardwareBase, Tici())
+if COMMA_HARDWARE:
+  HARDWARE = cast(HardwareBase, HardwareComma())
 else:
-  HARDWARE = cast(HardwareBase, Pc())
+  HARDWARE = cast(HardwareBase, HardwarePc())
