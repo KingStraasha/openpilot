@@ -133,7 +133,7 @@ procs = [
   PythonProcess("dmonitoringmodeld", "openpilot.selfdrive.modeld.dmonitoringmodeld", driverview, enabled=(WEBCAM or not PC)),
 
   PythonProcess("sensord", "openpilot.system.sensord.sensord", only_onroad, enabled=not PC),
-  PythonProcess("ui", "openpilot.selfdrive.ui.ui", always_run, restart_if_crash=True),
+  PythonProcess("ui", "openpilot.selfdrive.ui.ui", always_run),
   # BluePilot: use a fork-local subclass for optional custom sounds; upstream soundd remains unchanged.
   PythonProcess("soundd", "openpilot.selfdrive.ui.bp.soundd_bp" if is_bluepilot() else "openpilot.selfdrive.ui.soundd", driverview),
   # End BluePilot
@@ -147,10 +147,7 @@ procs = [
   PythonProcess("card", "openpilot.selfdrive.car.card", only_onroad),
   PythonProcess("deleter", "openpilot.system.loggerd.deleter", always_run),
   PythonProcess("dmonitoringd", "openpilot.selfdrive.monitoring.dmonitoringd", driverview, enabled=(WEBCAM or not PC)),
-  # BluePilot: restart_if_crash -- a diag-port serial fault (see qcomgpsd.py's reconnect
-  # handling) is now recovered in-process, but this is a backstop for anything else that
-  # still takes the process down; without it a crash meant no GPS for the rest of the drive.
-  PythonProcess("qcomgpsd", "openpilot.system.qcomgpsd.qcomgpsd", qcomgps, enabled=COMMA_HARDWARE, restart_if_crash=True),
+  PythonProcess("qcomgpsd", "openpilot.system.qcomgpsd.qcomgpsd", qcomgps, enabled=COMMA_HARDWARE),
   PythonProcess("pandad", "openpilot.selfdrive.pandad.pandad", always_run),
   PythonProcess("paramsd", "openpilot.selfdrive.locationd.paramsd", only_onroad),
   PythonProcess("lagd", "openpilot.selfdrive.locationd.lagd", only_onroad),

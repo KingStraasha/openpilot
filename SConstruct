@@ -88,7 +88,7 @@ acados_include_dirs = [
 allowed_system_libs = {
   "EGL", "GLESv2", "GL",
   "Qt5Charts", "Qt5Core", "Qt5Gui", "Qt5Widgets",
-  "dl", "drm", "gbm", "m", "pthread", "rt", "stdc++fs",
+  "dl", "drm", "gbm", "m", "pthread", "rt", "stdc++", "stdc++fs",
 }
 
 def _resolve_lib(env, name):
@@ -121,6 +121,8 @@ def _libflags(target, source, env, for_signature):
 env = Environment(
   ENV={
     "PATH": os.environ['PATH'],
+    "CC": "gcc",
+    "LD_LIBRARY_PATH": "/usr/lib64/llvm17/lib" + (f":{ldp}" if (ldp := os.environ.get('LD_LIBRARY_PATH')) else ""),
     "PYTHONPATH": os.pathsep.join(submodule_python_paths),
     "ACADOS_SOURCE_DIR": acados.DIR,
     "ACADOS_PYTHON_INTERFACE_PATH": acados.TEMPLATE_DIR,

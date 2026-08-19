@@ -399,7 +399,7 @@ class LateralAngleExt:
     # curvature, kappa_entering stays True, and the exit-biased blend is permanently disabled — causing the car
     # to command max path_angle through the entire apex. 0.15s gives t_base ≤ 0.20s and VLT ≤ 0.33s, restoring
     # the 2.8m lookahead that kept kappa_entering False at the apex in successful earlier runs.
-    _t_base = float(clip(self.sm['liveDelay'].lateralDelay, 0.1, 0.15)) + _DT_MDL
+    _t_base = float(clip(self.sm['lateralDelay'].lateralDelay, 0.1, 0.15)) + _DT_MDL
     _speed_factor = float(interp(v_ego, [_VLT_V_LOW_MS, _VLT_V_HIGH_MS], [1.0, 0.0]))
     # Direction-aware kappa factor: on curve ENTRY (model shows more curvature at t_base than planner now),
     # keep full lookahead so pre-steering begins early. On exit/apex, taper by magnitude to prevent unwind.
