@@ -4,7 +4,7 @@
     {
       "label": "SCons: Build BluePilot",
       "type": "shell",
-      "command": "scons -j$(nproc)",
+      "command": ".venv/bin/scons -j2",
       "group": {
         "kind": "build",
         "isDefault": true
@@ -16,9 +16,20 @@
       }
     },
     {
+      "label": "SCons: Build Fast (4 Cores)",
+      "type": "shell",
+      "command": ".venv/bin/scons -j4",
+      "group": "build",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
       "label": "SCons: Clean Build",
       "type": "shell",
-      "command": "scons -c",
+      "command": ".venv/bin/scons -c",
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",
@@ -28,7 +39,7 @@
     {
       "label": "Ruff: Lint Check",
       "type": "shell",
-      "command": "${workspaceFolder}/.venv/bin/ruff check .",
+      "command": ".venv/bin/ruff check .",
       "group": "test",
       "problemMatcher": [],
       "presentation": {
@@ -39,7 +50,7 @@
     {
       "label": "Ruff: Format Code",
       "type": "shell",
-      "command": "${workspaceFolder}/.venv/bin/ruff format .",
+      "command": ".venv/bin/ruff format .",
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",
@@ -47,21 +58,13 @@
       }
     },
     {
-      "label": "Pytest: Run Tests",
+      "label": "Unittest: Ford Controller Tests",
       "type": "shell",
-      "command": "${workspaceFolder}/.venv/bin/pytest openpilot",
-      "group": "test",
-      "problemMatcher": [],
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared"
-      }
-    },
-    {
-      "label": "Pytest: Ford Controller Tests",
-      "type": "shell",
-      "command": "${workspaceFolder}/.venv/bin/pytest opendbc_repo/opendbc/car/ford/tests/",
-      "group": "test",
+      "command": "PYTHONPATH=.:opendbc_repo:openpilot:sunnypilot .venv/bin/python -m unittest discover -s opendbc_repo/opendbc/sunnypilot/car/ford/tests",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",
@@ -71,7 +74,7 @@
     {
       "label": "BluePilot: Run Web Portal",
       "type": "shell",
-      "command": "${workspaceFolder}/.venv/bin/python -m bluepilot.backend.bp_portal",
+      "command": ".venv/bin/python -m bluepilot.backend.bp_portal",
       "isBackground": true,
       "problemMatcher": [],
       "presentation": {
