@@ -12,7 +12,11 @@
     ".",
     "opendbc_repo",
     "openpilot",
-    "sunnypilot"
+    "sunnypilot",
+    "msgq_repo",
+    "rednose_repo",
+    "teleoprtc_repo",
+    "tinygrad_repo"
   ],
   "pythonVersion": "3.12",
   "pythonPlatform": "Linux"
