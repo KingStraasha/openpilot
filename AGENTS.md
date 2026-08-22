@@ -33,16 +33,18 @@ This document provides a comprehensive guide to understanding, navigating, and m
 **BluePilot** is a Ford-focused fork of SunnyPilot (which itself forks OpenPilot/commaai).
 
 ### Key Information
+
 - **Current Version:** 7.0.0
 - **Based On:** SunnyPilot 2026.003.000 (staging)
-- **Repository:** https://github.com/BluePilotDev/bluepilot
+- **Repository:** <https://github.com/BluePilotDev/bluepilot>
 - **Current Branch:** `bp70` (active development / release branch)
 - **Main Dev Branch:** `bp-dev`
 - **Platform:** Comma 4 (MICI) and Comma 3X (TIZI/TICI)
-- **AGNOS:** 18.5
+- **AGNOS:** 19.6
 - **Focus:** Ford-specific enhancements for lateral/longitudinal control, hybrid vehicle support, and enhanced UI
 
 ### What Makes BluePilot Unique
+
 - Advanced Ford-specific lateral control using 4-signal CAN messaging
 - Hybrid vehicle battery monitoring and power flow visualization
 - Blindspot monitoring integration
@@ -93,6 +95,7 @@ self.alert_renderer = AlertRendererBP()
 ```
 
 This pattern makes it easy to:
+
 - Find all BluePilot touchpoints during upstream merges (`grep -r "BluePilot:"`)
 - Understand why each change exists
 - Resolve merge conflicts quickly
@@ -111,6 +114,7 @@ Widget (openpilot base)
 ### How Conditional Wiring Works
 
 In `selfdrive/ui/layouts/main.py`:
+
 ```python
 if gui_app.sunnypilot_ui():
     from openpilot.selfdrive.ui.bp.onroad.augmented_road_view_bp import AugmentedRoadViewBP as AugmentedRoadView
@@ -273,6 +277,7 @@ BluePilot uses Ford's **4-signal lateral control protocol**:
 4. **Curvature Rate** - Rate of change in curvature
 
 #### Key Features
+
 - **Anti-Overshoot Logic:** Prevents oscillation after steering corrections
 - **Ford-Specific Acceleration Limits:** Respects vehicle's lateral acceleration constraints
 - **Human Turn Detection:** 3-second latch when driver overrides steering
@@ -281,6 +286,7 @@ BluePilot uses Ford's **4-signal lateral control protocol**:
 - **Lane Change Factor Tuning:** Adjustable responsiveness during lane changes
 
 #### Tuning Parameters (exposed in UI)
+
 - `disable_BP_lat_UI` - Enable/disable BP lateral control
 - `lane_change_factor_high` - High-speed lane change factor (0.5-1.0)
 - `custom_path_offset` - In-lane positioning (-0.5 to 0.5m)
@@ -295,6 +301,7 @@ BluePilot uses Ford's **4-signal lateral control protocol**:
 BluePilot implements intelligent speed and braking control for Ford vehicles.
 
 #### Key Features
+
 - **Lead-Aware Gas Limiting:** Won't accelerate into traffic ahead
 - **Rate-Limited Transitions:** Smooth acceleration/deceleration transitions
 - **Smart Brake/Precharge Actuation:** Gradual pressure buildup with hysteresis
@@ -303,11 +310,13 @@ BluePilot implements intelligent speed and braking control for Ford vehicles.
 - **CRITICAL SAFETY:** Never allows gas and brake simultaneously
 
 #### Tuning Parameters (exposed in UI)
+
 - `disable_BP_long_UI` - Enable/disable BP longitudinal control
 
 ### Implementation Location
 
 All Ford-specific control logic is in:
+
 ```
 opendbc_repo/opendbc/car/ford/carcontroller.py
 ```
@@ -332,11 +341,13 @@ The BluePilot Portal is a web-based interface for managing routes, viewing syste
 ### Main Components
 
 #### Backend Server
+
 - **Location:** `bluepilot/backend/bp_portal.py` (~3984 lines)
 - **Config:** `bluepilot/backend/config.py`
 - **Architecture:** Modular route/video/realtime/cache/system subsystems
 
 #### Web Frontend
+
 - **Location:** `bluepilot/web/`
 - **Technology:** Vanilla JavaScript, zero npm dependencies
 - **Source:** `bluepilot/web/src/`
@@ -345,6 +356,7 @@ The BluePilot Portal is a web-based interface for managing routes, viewing syste
 ### API Endpoints
 
 #### Route Management
+
 - `GET /api/routes` - List all routes with metadata (location, distance, duration)
 - `GET /api/video/:baseName/:segment/:camera` - Stream video with byte-range support
 - `GET /api/thumbnail/:baseName` - Get route thumbnail image
@@ -352,10 +364,12 @@ The BluePilot Portal is a web-based interface for managing routes, viewing syste
 - `DELETE /api/delete/:baseName` - Delete route (blocked when driving)
 
 #### System Information
+
 - `GET /api/system/metrics` - CPU/memory/disk usage
 - `GET /api/system/info` - Device info, version, network status
 
 #### WebSocket Events
+
 - `routes_updated` - Route list changed
 - `processing_update` - Route processing progress
 - `export_progress` - Video export progress
@@ -403,15 +417,18 @@ BluePilot uses a comprehensive parameter system for configuration and feature to
 ### Parameter Categories
 
 #### Ford Preferences (`FordPref*`)
+
 - `FordPrefHybridVehicle` - Enable hybrid vehicle features
 - `FordPrefEnableDebugLogs` - Enable debug logging
 
 #### BluePilot Portal (`BPPortal*`)
+
 - `BPPortalEnabled` - Enable portal server
 - `BPPortalPort` - HTTP server port (default 8088)
 - `BPPortalWebSocketPort` - WebSocket port (default 8089)
 
 #### BluePilot Features (`BP*`)
+
 - `disable_BP_lat_UI` - Disable BP lateral control
 - `disable_BP_long_UI` - Disable BP longitudinal control
 - `lane_change_factor_high` - Lane change factor (0.5-1.0)
@@ -420,6 +437,7 @@ BluePilot uses a comprehensive parameter system for configuration and feature to
 - `HC_PID_gain_UI` - High curvature PID gain (0.0-5.0)
 
 #### Display Toggles
+
 - `ShowTorque` - Display steering torque gauge
 - `ShowBatteryGauge` - Display hybrid battery gauge
 - `ShowPowerFlowGauge` - Display power flow gauge
@@ -457,41 +475,49 @@ pid_gain = bp_params.get_float("LC_PID_gain_UI", min_val=0.0, max_val=5.0)
 BluePilot inherits and extends features from SunnyPilot. These features are fully integrated and available to BluePilot users.
 
 ### MADS - Modular Assistive Driving System
+
 - **Location:** `sunnypilot/mads/`
 - **Purpose:** Decoupled lateral/longitudinal engagement state machine
 - **Benefit:** Independent control of steering and speed systems
 
 ### NNLC - Neural Network Lateral Control
+
 - **Location:** `sunnypilot/selfdrive/controls/lib/nnlc/`
 - **Purpose:** ML-based steering control
 - **Benefit:** Smoother, more natural steering behavior
 
 ### ICBM - Intelligent Cruise Button Management
+
 - **Location:** `sunnypilot/selfdrive/car/intelligent_cruise_button_management/`
 - **Purpose:** Automatic speed matching based on cruise button presses
 - **Benefit:** Simplifies speed adjustments
 
 ### SLA - Speed Limit Assist
+
 - **Location:** `sunnypilot/selfdrive/controls/lib/speed_limit/`
 - **Purpose:** Vision + map + PCM fusion for speed limit detection
 - **Benefit:** Automatic speed limit awareness
 
 ### MAPD - Map Data Management
+
 - **Location:** `sunnypilot/mapd/`
 - **Purpose:** OpenStreetMap data download and management
 - **Benefit:** Enhanced navigation and speed limit data
 
 ### Sunnylink
+
 - **Location:** `sunnypilot/sunnylink/`
 - **Purpose:** Cloud connectivity, backups, device registration
 - **Benefit:** Remote device management and data backup
 
 ### Model Manager
+
 - **Location:** `sunnypilot/models/`
 - **Purpose:** 86+ driving model selection with async download
 - **Benefit:** Choose optimal model for driving conditions
 
 ### ControlsExt
+
 - **Location:** `sunnypilot/selfdrive/controls/controlsd_ext.py`
 - **Purpose:** Extends controlsd without modifying stock code
 - **Benefit:** Clean integration of SP control features
@@ -503,9 +529,11 @@ BluePilot inherits and extends features from SunnyPilot. These features are full
 The UI system demonstrates the three-layer inheritance architecture in action. Understanding this is critical for UI development.
 
 ### Layer 1: Stock OpenPilot
+
 **Location:** `selfdrive/ui/onroad/`
 
 Base renderers:
+
 - `alert_renderer.py` - Alert display
 - `augmented_road_view.py` - Main road view
 - `cameraview.py` - Camera feed
@@ -514,18 +542,22 @@ Base renderers:
 - `model_renderer.py` - Model path visualization
 
 ### Layer 2: SunnyPilot Extensions
+
 **Location:** `selfdrive/ui/sunnypilot/onroad/`
 
 Extended renderers:
+
 - `hud_renderer.py` → `HudRendererSP` - Extended HUD features
 - `driver_state.py` → `DriverStateRendererSP` - Enhanced driver monitoring
 - `model_renderer.py` → `ModelRendererSP` - Model visualization mixin
 - `developer_ui/` - Developer diagnostic overlay
 
 ### Layer 3: BluePilot Customizations
+
 **Location:** `selfdrive/ui/bp/onroad/` (TICI) and `selfdrive/ui/bp/mici/onroad/` (MICI)
 
 #### TICI Device Renderers
+
 - `alert_renderer_bp.py` → `AlertRendererBP` - Pill-shaped alerts with custom styling
 - `augmented_road_view_bp.py` → `AugmentedRoadViewBP` - Road view + blindspot integration
 - `blindspot_renderer.py` → `BlindspotRendererMixin` - Blindspot visualization mixin
@@ -535,11 +567,14 @@ Extended renderers:
 - `powerflow_gauge.py` → `PowerFlowGauge` - Hybrid power flow arch gauge
 
 #### MICI Device Renderers
+
 **Location:** `selfdrive/ui/bp/mici/onroad/`
+
 - Smaller screen adaptations of TICI renderers
 - Simplified layouts for MICI display constraints
 
 ### Layout Wiring
+
 **Location:** `selfdrive/ui/layouts/main.py`
 
 This is the **key file** that wires everything together using conditional imports:
@@ -559,9 +594,11 @@ else:
 ```
 
 ### Settings UI
+
 **Location:** `selfdrive/ui/bp/layouts/settings/bluepilot.py`
 
 The BluePilot settings menu contains 20+ toggles for:
+
 - Control system tuning (lateral/longitudinal)
 - Display preferences (gauges, overlays)
 - Feature enablement (blindspot, road names)
@@ -576,6 +613,7 @@ BluePilot uses Cereal (Cap'n Proto) for inter-process communication. Messages fl
 ### Message Types
 
 #### Stock OpenPilot Messages
+
 - `carState` - Current vehicle state (speed, steering angle, etc.)
 - `carControl` - Control commands (gas, brake, steer)
 - `selfdriveState` - Self-drive system state
@@ -584,12 +622,14 @@ BluePilot uses Cereal (Cap'n Proto) for inter-process communication. Messages fl
 - `liveParameters` - Live parameter estimates
 
 #### SunnyPilot Extensions
+
 - `carControlSP` - SunnyPilot control extensions
 - `selfdriveStateSP` - SP state extensions
 - `longitudinalPlanSP` - SP longitudinal planning
 - `carParamsSP` - SP car parameters
 
 #### BluePilot Extensions
+
 - `carStateBP` - BluePilot state additions
   - `hybridDrive` - Hybrid system state
   - `hybridBattery` - Battery SOC/voltage/current
@@ -607,6 +647,7 @@ camerad → modelV2 → modeld → selfdriveState → controlsd → carControl �
 ```
 
 ### Cereal Schema Location
+
 **Location:** `cereal/` directory
 
 To add new messages or fields, modify the `.capnp` schema files and rebuild.
@@ -618,6 +659,7 @@ To add new messages or fields, modify the `.capnp` schema files and rebuild.
 BluePilot uses SCons for building the project.
 
 ### Build Configuration
+
 - **Main File:** `SConstruct`
 - **Python Support:** 3.11-3.13
 - **C/C++ Compilation:** For performance-critical code
@@ -642,6 +684,7 @@ pytest -n auto
 ### Development Environment
 
 For macOS development, set in `.env`:
+
 ```
 ZMQ=1
 ```
@@ -655,16 +698,19 @@ This uses ZMQ instead of msgq for message passing, which is compatible with macO
 Follow these conventions to maintain codebase consistency and enable clean upstream merges.
 
 ### File Naming
+
 - BluePilot files use `_bp` suffix: `alert_renderer_bp.py`, `hud_renderer_bp.py`
 - SunnyPilot files use `_sp` suffix: `controlsd_ext.py` (or `SP` in class name)
 - Stock OpenPilot files have no suffix
 
 ### Class Naming
+
 - BluePilot classes use `BP` suffix: `AlertRendererBP`, `HudRendererBP`
 - SunnyPilot classes use `SP` suffix: `HudRendererSP`, `ControlsExt`
 - Stock OpenPilot classes have no suffix
 
 ### Directory Structure
+
 - BluePilot UI: `selfdrive/ui/bp/`
 - BluePilot processes: `bluepilot/`
 - SunnyPilot extensions: `sunnypilot/`
@@ -673,6 +719,7 @@ Follow these conventions to maintain codebase consistency and enable clean upstr
 ### Modification Rules
 
 **DO:**
+
 - Create new files that inherit from stock classes
 - Use conditional imports in layout wiring files
 - Add new processes via `procs +=` in `process_config.py`
@@ -681,18 +728,21 @@ Follow these conventions to maintain codebase consistency and enable clean upstr
 - Wrap any changes to upstream files in `# BluePilot: <description>` / `# End BluePilot` comments
 
 **DON'T:**
+
 - Make unnecessary changes to stock OpenPilot or SunnyPilot files
 - Replace stock processes (always add alongside)
 - Use compile-time flags for features (use Params instead)
 - Modify upstream files without comment markers (makes merges difficult)
 
 ### Parameter Naming
+
 - Ford-specific: `FordPref*` prefix
 - BluePilot features: `BP*` prefix
 - Display toggles: `Show*` or descriptive names
 - Control tuning: descriptive names with `_UI` suffix for user-facing params
 
 ### Code Style
+
 - Follow PEP 8 for Python code
 - Use type hints where appropriate
 - Document complex logic with comments
@@ -705,6 +755,7 @@ Follow these conventions to maintain codebase consistency and enable clean upstr
 BluePilot uses pytest for testing.
 
 ### Test Configuration
+
 **Location:** `pyproject.toml`
 
 ```toml
@@ -735,6 +786,7 @@ pytest --cov=selfdrive --cov-report=html
 ```
 
 ### Test Locations
+
 - Process-specific tests in module directories
 - Portal testing: `bluepilot/test_web_routes.py` (uses mock Params for dev machines)
 - Integration tests in `selfdrive/test/`
@@ -742,6 +794,7 @@ pytest --cov=selfdrive --cov-report=html
 ### Writing Tests
 
 When adding new features, include tests:
+
 - Unit tests for individual functions
 - Integration tests for process interactions
 - UI tests for renderer behavior (if applicable)
@@ -753,9 +806,11 @@ When adding new features, include tests:
 BluePilot includes a sophisticated logging system for debugging and monitoring.
 
 ### BluePilot Logger
+
 **Location:** `bluepilot/logger/bp_logger.py`
 
 #### Features
+
 - Queue-based threading for non-blocking logs
 - Rotating file logs (10MB × 10 backups)
 - Platform-aware log paths
@@ -764,16 +819,19 @@ BluePilot includes a sophisticated logging system for debugging and monitoring.
 #### Log Paths
 
 **TICI Device:**
+
 ```
 /data/logs/bp_logger/bluepilot.log
 ```
 
 **macOS:**
+
 ```
 ~/Library/Logs/bluepilot/bluepilot.log
 ```
 
 **Linux:**
+
 ```
 ~/.local/share/bluepilot/logs/bluepilot.log
 ```
@@ -802,6 +860,7 @@ logger.error("FFmpeg process failed", exc_info=True)
 ### Debug Logging
 
 Enable debug logs via parameter:
+
 ```python
 bp_params.put("FordPrefEnableDebugLogs", "1")
 ```
@@ -809,11 +868,13 @@ bp_params.put("FordPrefEnableDebugLogs", "1")
 ### Viewing Logs
 
 **On Device:**
+
 ```bash
 tail -f /data/logs/bp_logger/bluepilot.log
 ```
 
 **On Dev Machine:**
+
 ```bash
 tail -f ~/Library/Logs/bluepilot/bluepilot.log  # macOS
 tail -f ~/.local/share/bluepilot/logs/bluepilot.log  # Linux
@@ -834,6 +895,7 @@ This section provides quick answers to common development tasks.
 5. Add feature toggle in `bluepilot/params/params.json`
 
 **Example:**
+
 ```python
 from openpilot.selfdrive.ui.widgets import Widget
 
@@ -851,6 +913,7 @@ class MyWidgetBP(Widget):
 ### Adding a New Settings Toggle
 
 1. Define parameter in `bluepilot/params/params.json`:
+
 ```json
 {
     "name": "MyNewFeature",
@@ -860,12 +923,14 @@ class MyWidgetBP(Widget):
 }
 ```
 
-2. Add toggle in `selfdrive/ui/bp/layouts/settings/bluepilot.py`:
+1. Add toggle in `selfdrive/ui/bp/layouts/settings/bluepilot.py`:
+
 ```python
 self.add_toggle("My New Feature", "MyNewFeature")
 ```
 
-3. Read parameter in your code:
+1. Read parameter in your code:
+
 ```python
 enabled = bp_params.get_bool("MyNewFeature")
 ```
@@ -885,32 +950,36 @@ enabled = bp_params.get_bool("MyNewFeature")
 **File:** `bluepilot/backend/bp_portal.py`
 
 1. Add handler method:
+
 ```python
 def handle_my_endpoint(self, query_params):
     # Your logic here
     return {"success": True, "data": result}
 ```
 
-2. Register route in `do_GET()` or `do_POST()`:
+1. Register route in `do_GET()` or `do_POST()`:
+
 ```python
 elif self.path.startswith("/api/my-endpoint"):
     data = self.handle_my_endpoint(query_params)
     self.send_json_response(data)
 ```
 
-3. Add corresponding frontend code in `bluepilot/web/src/`
+1. Add corresponding frontend code in `bluepilot/web/src/`
 
 ### Adding a New BluePilot Process
 
 1. Create process in `bluepilot/my_process/my_process.py`
 2. Register in `system/manager/process_config.py`:
+
 ```python
 procs += [
     ("my_process", ("bluepilot.my_process.my_process", ["MyProcess"])),
 ]
 ```
+
 3. Handle lifecycle (start/stop/restart)
-4. Add tests in `bluepilot/my_process/test_my_process.py`
+2. Add tests in `bluepilot/my_process/test_my_process.py`
 
 ### Modifying Alert Display
 
@@ -937,7 +1006,7 @@ procs += [
 ### Key Files by Task
 
 | Task | File(s) |
-|------|---------|
+| ------ | --------- |
 | **Add onroad UI element** | `selfdrive/ui/bp/onroad/` + wire in `augmented_road_view_bp.py` |
 | **Add settings toggle** | `selfdrive/ui/bp/layouts/settings/bluepilot.py` + `bluepilot/params/params.json` |
 | **Modify Ford lateral control** | `opendbc_repo/opendbc/car/ford/carcontroller.py` |
@@ -1066,7 +1135,7 @@ This document provides a comprehensive guide to the BluePilot codebase. Key take
 
 ### Additional Resources
 
-- **Repository:** https://github.com/BluePilotDev/bluepilot
+- **Repository:** <https://github.com/BluePilotDev/bluepilot>
 - **Release Notes:** `BP-5.0-RELEASE.md`
 - **Changelog:** `BP_CHANGES.json`
 - **Version:** `BPVERSION`
@@ -1082,6 +1151,7 @@ This document provides a comprehensive guide to the BluePilot codebase. Key take
 ### Contributing
 
 When contributing to BluePilot:
+
 1. Follow the inheritance architecture
 2. Use proper naming conventions (`_bp` suffix, `BP` class suffix)
 3. Add parameters for new features

@@ -121,7 +121,7 @@ def _libflags(target, source, env, for_signature):
 env = Environment(
   ENV={
     "PATH": os.environ['PATH'],
-    "CC": "gcc",
+    "CC": "clang",
     "LD_LIBRARY_PATH": "/usr/lib64/llvm17/lib" + (f":{ldp}" if (ldp := os.environ.get('LD_LIBRARY_PATH')) else ""),
     "PYTHONPATH": os.pathsep.join(submodule_python_paths),
     "ACADOS_SOURCE_DIR": acados.DIR,
@@ -169,6 +169,8 @@ env = Environment(
   tools=["default", "cython", "compilation_db", "rednose_filter"],
   toolpath=["#msgq_repo/site_scons/site_tools", "#rednose_repo/site_scons/site_tools"],
 )
+env["CC"] = "clang"
+env["CXX"] = "clang++"
 env["LINK"] = env["CXX"]
 env["SHLINK"] = env["CXX"]
 # SCons' Darwin linker tool doesn't define the variables used to expand RPATH.
