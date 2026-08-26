@@ -1,8 +1,11 @@
 # AGENTS.md - BluePilot Codebase Guide
 
-**Version:** 5.0.0 → 6.0.0 (in development)
-**Last Updated:** 2026-02-16
+**Version:** 7.0.0
+**Last Updated:** 2026-08-26
 **Target Audience:** AI agents, developers, and contributors
+
+> [!NOTE]
+> For active vehicle profiles, current branch state, and cross-machine session memory, see [.agents/ACTIVE_CONTEXT.md](file:///srv/workspaces/bluepilot/.agents/ACTIVE_CONTEXT.md) and [.agents/rules/session-continuity.md](file:///srv/workspaces/bluepilot/.agents/rules/session-continuity.md).
 
 This document provides a comprehensive guide to understanding, navigating, and modifying the BluePilot codebase. It is designed to help AI agents and human developers quickly understand the architecture, conventions, and key systems.
 
@@ -11,20 +14,21 @@ This document provides a comprehensive guide to understanding, navigating, and m
 ## Table of Contents
 
 1. [Project Identity](#project-identity)
-2. [Core Architecture Principle](#core-architecture-principle)
-3. [Directory Structure](#directory-structure)
-4. [Ford-Specific Control System](#ford-specific-control-system)
-5. [BluePilot Portal](#bluepilot-portal)
-6. [Parameter System](#parameter-system)
-7. [SunnyPilot Features](#sunnypilot-features)
-8. [UI System Architecture](#ui-system-architecture)
-9. [Messaging System](#messaging-system)
-10. [Build System](#build-system)
-11. [Development Conventions](#development-conventions)
-12. [Testing](#testing)
-13. [Logging](#logging)
-14. [Quick Reference Guide](#quick-reference-guide)
-15. [Critical Safety Notes](#critical-safety-notes)
+2. [Comma 4 Target, Vehicle Baseline & Antigravity 2.0 State](#comma-4-target-vehicle-baseline--antigravity-20-state)
+3. [Core Architecture Principle](#core-architecture-principle)
+4. [Directory Structure](#directory-structure)
+5. [Ford-Specific Control System](#ford-specific-control-system)
+6. [BluePilot Portal](#bluepilot-portal)
+7. [Parameter System](#parameter-system)
+8. [SunnyPilot Features](#sunnypilot-features)
+9. [UI System Architecture](#ui-system-architecture)
+10. [Messaging System](#messaging-system)
+11. [Build System](#build-system)
+12. [Development Conventions](#development-conventions)
+13. [Testing](#testing)
+14. [Logging](#logging)
+15. [Quick Reference Guide](#quick-reference-guide)
+16. [Critical Safety Notes](#critical-safety-notes)
 
 ---
 
@@ -33,13 +37,13 @@ This document provides a comprehensive guide to understanding, navigating, and m
 **BluePilot** is a Ford-focused fork of SunnyPilot (which itself forks OpenPilot/commaai).
 
 ### Key Information
-- **Current Version:** 5.0.0
-- **Based On:** SunnyPilot 2025.003.0.0
+- **Current Version:** 7.0.0
+- **Based On:** SunnyPilot 2026.003.000
 - **Repository:** https://github.com/BluePilotDev/bluepilot
-- **Current Branch:** `bp-6.0-ui-refactor` (active development)
+- **Current Branch:** `bp70` / `bp-7.0` (active release track)
 - **Main Dev Branch:** `bp-dev`
-- **Platform:** comma 3X device (TICI) and MICI devices
-- **AGNOS:** 13.1
+- **Platform:** comma 4 (`mici`), comma 3X (`tizi`), comma 3 (`tici`)
+- **AGNOS:** 18.5
 - **Focus:** Ford-specific enhancements for lateral/longitudinal control, hybrid vehicle support, and enhanced UI
 
 ### What Makes BluePilot Unique
@@ -49,6 +53,76 @@ This document provides a comprehensive guide to understanding, navigating, and m
 - Advanced lane positioning (ALP) with configurable in-lane offset
 - Web-based BluePilot Portal for route management and device configuration
 - High/low curvature mode tuning for different driving scenarios
+
+---
+
+## Comma 4 Target, Vehicle Baseline & Antigravity 2.0 State
+
+This section captures the essential hardware, operating system, vehicle porting configuration, agent runtime environment, and known compilation resolutions for on-device builds on the Comma 4.
+
+### 1. Target Hardware & OS Environment
+- **Device Hardware**: Comma 4 (`mici` platform architecture).
+- **Operating System**: AGNOS 18.5 (`AGNOS_VERSION="18.5"`, system manifest defined in `openpilot/system/hardware/comma/agnos.json`).
+- **Boot Lifecycle & Initialization**:
+  - `launch_chffrplus.sh` executes `agnos_init`: runs `sudo abctl --set_success` on current slot, verifies AGNOS image manifest, purges stale `/data/scons_cache/config.lock` and `/data/etc/NetworkManager/system-connections/*.nmmeta`.
+  - Sets real-time GPU/ion permissions (`sudo chmod 660 /dev/adsprpc-smd /dev/ion /dev/kgsl-3d0`).
+- **Display & Graphics Stack**:
+  - Display server powered by `magic.service` (Wayland/Weston on AGNOS) and onroad UI rendered via Raylib/PyRay (`mici` UI layout tree).
+  - **Adreno Driver Symlink Hook (`fix_egl_adreno`)**: Comma installer normally symlinks proprietary Adreno GLES drivers. For git clone installs, `fix_egl_adreno` in `launch_chffrplus.sh` remounts `/` read-write and enforces `libEGL.so.1 -> libEGL.so.1.0.0` and `libGLESv2.so.2 -> libGLESv2.so.2.0.0` before restarting `magic.service` to prevent Mesa fallback crashes (`eglGetDisplay` failures).
+
+### 2. Vehicle Model Configuration & Porting Flags
+- **Target Vehicle**: 2023 Ford F-150 Lightning
+- **Car Fingerprint / Platform**: `CAR.FORD_F_150_LIGHTNING_MK1` (`FordF150LightningPlatform` extending `FordCANFDPlatformConfig`)
+- **Bus Architecture**: Ford CAN-FD via Q4 harness (`CarHarness.ford_q4`)
+- **Radar Interface**: `RADAR.STEER_ASSIST_DATA` (`ford_lincoln_base_pt` DBC) over CAN-FD bus (does NOT use Delphi MRR / `FORD_CADS`)
+- **Steering Control Type**: `SteerControlType.angle` (Angle-based lateral control via `opendbc_repo/opendbc/sunnypilot/car/ford/lateral_angle_ext.py` using `FORD_STOCK_ANGLE_LIMITS` or `BP_ANGLE_LIMITS`)
+- **Vehicle Physical Specs**:
+  - Mass: 2948 kg
+  - Wheelbase: 3.70 m
+  - Steer Ratio: 16.9
+- **Platform & Safety Flags**:
+  - `FordSafetyFlags.CANFD`
+  - `FordFlags.CANFD`
+  - Non-essential ECUs: `{Ecu.eps: [CAR.FORD_F_150_LIGHTNING_MK1, CAR.FORD_EXPEDITION_MK4]}`
+- **VIN Matching / Fingerprint Fallback**:
+  - WMIs: `1FT`
+  - VDS codes: `F150_VDS_CODES`
+  - Supported Model Years: `MY_2022`, `MY_2023`, `MY_2024`, `MY_2025` ('N', 'P', 'R', 'S')
+
+### 3. Antigravity 2.0 Toolchain & Agent Runtime Constraints
+- **Default Workspace Root**: `/srv/workspaces` (active repository root: `/srv/workspaces/bluepilot`).
+- **Command & Terminal Execution**:
+  - Operating System: Linux (Bash shell).
+  - **Prohibition on `cd` commands**: Never issue `cd` in shell commands; always supply the absolute directory using the `Cwd` parameter.
+  - Long-running/daemon services (e.g. dev servers, build listeners) must be launched with daemon flags and monitored via `manage_task`.
+- **Dependency & Build Rules**:
+  - Build toolchain uses SCons (`scons -j$(nproc)`).
+  - Python versions supported: 3.11–3.13. Avoid ad-hoc global `pip install` modifications; use `uv` and repo `pyproject.toml`.
+  - Development on non-AGNOS environments (e.g., macOS dev machines) requires `ZMQ=1` in `.env`, whereas device builds use `msgq`.
+- **Multi-Device Session Continuity**:
+  - All vehicle context, active branch tracking, upstream evaluations, and work-in-progress state must be maintained in `.agents/ACTIVE_CONTEXT.md` per `.agents/rules/session-continuity.md`.
+- **Safety & Destructive Command Protocols**:
+  - Strict hold-and-verify protocol: Never delete, wipe, or force-reset workspace branches without explicit user confirmation.
+
+### 4. Known Build Errors & On-Device Compilation Blockers (Comma 4 / mici)
+- **Cereal Import Namespace & `PYTHONPATH` Resolution**:
+  - *Issue:* Upstream refactoring relocated `cereal` inside `openpilot/cereal`. On device, `PYTHONPATH` is set to repository root (`/data/openpilot`), causing bare `import cereal` or `from cereal import ...` statements to raise `ModuleNotFoundError`.
+  - *Mitigation:* `launch_chffrplus.sh` establishes `ln -sfn openpilot/cereal cereal` at root, and internal UI modules explicitly use `from openpilot.cereal import ...`.
+- **BluePilot UI Directory Symlink**:
+  - *Issue:* UI layout files importing `openpilot.selfdrive.ui.bp` fail if `selfdrive/ui/bp` only exists at repository root without nested mapping.
+  - *Mitigation:* `launch_chffrplus.sh` runs `mkdir -p openpilot/selfdrive/ui && ln -sfn ../../../selfdrive/ui/bp openpilot/selfdrive/ui/bp`.
+- **Missing Asset Binaries & Git LFS Bypass**:
+  - *Issue:* 21 BluePilot asset binaries (seasonal steering wheels, MICI settings icons, sound assets, spinner) were previously committed as Git LFS pointers pointing to an inaccessible upstream LFS server, leading to missing asset errors during on-device boot.
+  - *Mitigation:* Assets are directly tracked as binary objects in git, with `.gitattributes` overriding LFS filters (`-filter -text`).
+- **Adreno EGL / GLES Driver Collisions**:
+  - *Issue:* Clean git clones lack comma OS installer hooks, allowing default Mesa EGL/GLES libs to take precedence over Qualcomm Adreno proprietary drivers, causing `eglGetDisplay` fatal crashes in `magic.service`.
+  - *Mitigation:* `fix_egl_adreno` script automatically repoints `libEGL.so.1` and `libGLESv2.so.2` to Adreno drivers and restarts `magic.service`.
+- **SCons Cache Lock Contention**:
+  - *Issue:* Hard power cycles or ungraceful terminations leave stale lock files (`/data/scons_cache/config.lock` and `.git/index.lock`), blocking automated on-device SCons compilation on startup.
+  - *Mitigation:* `agnos_init` and `launch` remove stale lock files before invoking `./bp_build.py` or `./build.py`.
+- **UI Working Directory & Syntax Correctness**:
+  - *Issue:* `bp_spinner` working directory path misconfiguration (`system/ui` instead of `openpilot/system/ui`) and DBus try/else exception handling syntax bugs in `wifi_manager.py`.
+  - *Mitigation:* Validated and fixed paths to prevent UI daemon startup crashes.
 
 ---
 
@@ -179,7 +253,7 @@ BluePilotDev/
 │   │   │   ├── layouts/settings/        # 19+ SP settings screens
 │   │   │   └── mici/                    # MICI device SP components
 │   │   ├── bp/                  # BluePilot overrides (Layer 3) ← MAIN BP UI CODE
-│   │   │   ├── onroad/          # TICI device BP onroad renderers
+│   │   │   ├── onroad/          # Standard onroad BP renderers
 │   │   │   │   ├── alert_renderer_bp.py       # Pill-shaped alerts
 │   │   │   │   ├── augmented_road_view_bp.py  # Road view + blindspot
 │   │   │   │   ├── blindspot_renderer.py      # Blindspot mixin
@@ -187,10 +261,10 @@ BluePilotDev/
 │   │   │   │   ├── hybrid_battery_gauge.py    # Battery SOC/voltage/amps display
 │   │   │   │   ├── model_renderer_bp.py       # Path smoothing, torque coloring
 │   │   │   │   └── powerflow_gauge.py         # Hybrid power flow arch gauge
-│   │   │   ├── mici/onroad/    # MICI device BP renderers (smaller screen)
+│   │   │   ├── mici/onroad/    # comma 4 (mici) specific BP renderers
 │   │   │   ├── layouts/settings/bluepilot.py  # BP settings menu (20+ toggles)
 │   │   │   └── widgets/        # Float controls, QR dialog, input dialogs
-│   │   ├── mici/               # MICI device base components
+│   │   ├── mici/               # comma 4 (mici) device base components
 │   │   ├── layouts/            # Main layout wiring (conditional imports here)
 │   │   │   ├── main.py         # THE KEY FILE - swaps stock for BP classes
 │   │   │   ├── home.py
@@ -249,9 +323,10 @@ BluePilotDev/
 ├── rednose_repo/                 # State estimation library
 ├── tinygrad_repo/                # Neural network framework
 │
-├── BPVERSION                     # Current version (5.0.0)
+├── BPVERSION                     # Current version (7.0.0)
 ├── BP_CHANGES.json               # Structured changelog
-├── BP-5.0-RELEASE.md             # Release notes
+├── RELEASES.md                   # Full release notes
+├── CHANGELOG.md                  # SunnyPilot / BluePilot changelog
 ├── SConstruct                    # SCons build configuration
 ├── pyproject.toml                # Python project config (3.11-3.13)
 └── .env                          # Dev environment (ZMQ=1 on macOS)
@@ -305,14 +380,22 @@ BluePilot implements intelligent speed and braking control for Ford vehicles.
 #### Tuning Parameters (exposed in UI)
 - `disable_BP_long_UI` - Enable/disable BP longitudinal control
 
-### Implementation Location
+### Implementation Locations
 
-All Ford-specific control logic is in:
+Ford-specific control and interface logic is modularized in:
 ```
-opendbc_repo/opendbc/car/ford/carcontroller.py
+opendbc_repo/opendbc/sunnypilot/car/ford/
+├── lateral_angle_ext.py     # Angle-mode lateral control (CAN-FD platforms like F-150 Lightning)
+├── lateral_curv_ext.py      # Curvature-mode lateral control (CAN platforms)
+├── longitudinal_ext.py      # Longitudinal gas/braking limits & precharge
+├── human_turn.py            # Human steering override detection
+├── carstate_ext.py          # Battery SOC, hybrid powerflow parsing
+├── hud_ext.py               # HUD and visual alert management
+└── fordcan_ext.py           # CAN / CAN-FD message formatting
 ```
+And orchestrated via `opendbc_repo/opendbc/car/ford/carcontroller.py`.
 
-**Note:** Unlike UI components, carcontroller.py uses **feature flags via Params** rather than inheritance. This is because it directly interfaces with vehicle CAN protocols and must maintain compatibility with stock OpenPilot's vehicle interface architecture.
+**Note:** Unlike UI components, vehicle control logic uses **modular extension modules and feature flags via Params** rather than class inheritance. This maintains full upstream compatibility with OpenPilot's vehicle interface while cleanly isolating Ford-specific extensions.
 
 ---
 
@@ -1067,7 +1150,7 @@ This document provides a comprehensive guide to the BluePilot codebase. Key take
 ### Additional Resources
 
 - **Repository:** https://github.com/BluePilotDev/bluepilot
-- **Release Notes:** `BP-5.0-RELEASE.md`
+- **Release Notes:** `RELEASES.md` / `CHANGELOG.md`
 - **Changelog:** `BP_CHANGES.json`
 - **Version:** `BPVERSION`
 
@@ -1075,7 +1158,7 @@ This document provides a comprehensive guide to the BluePilot codebase. Key take
 
 - Review existing code for patterns and examples
 - Check parameter definitions in `bluepilot/params/params.json`
-- Examine carcontroller.py for control system logic
+- Examine `opendbc_repo/opendbc/sunnypilot/car/ford/` for control system logic
 - Study layout wiring in `selfdrive/ui/layouts/main.py`
 - Read release notes for recent changes
 
@@ -1091,6 +1174,6 @@ When contributing to BluePilot:
 
 ---
 
-**Document Version:** 1.0
-**Last Updated:** 2026-02-16
-**BluePilot Version:** 5.0.0 → 6.0.0 (in development)
+**Document Version:** 2.1
+**Last Updated:** 2026-08-26
+**BluePilot Version:** 7.0.0
