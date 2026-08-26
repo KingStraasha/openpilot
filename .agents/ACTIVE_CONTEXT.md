@@ -11,7 +11,7 @@
 - **Bus Architecture**: Ford CAN-FD via Q4 harness (`CarHarness.ford_q4`)
 - **Radar Interface**: `RADAR.STEER_ASSIST_DATA` (`ford_lincoln_base_pt` DBC) over CAN-FD bus
 - **Steering Control Type**: `SteerControlType.angle` (Angle-based lateral control)
-- **Target Device**: comma 4 (`mici`) / AGNOS dynamically specified by repo (`launch_env.sh` / `agnos.json`, baseline currently `18.5`)
+- **Target Device**: comma 4 (`mici`) / AGNOS locked strictly to `BluePilotDev/bluepilot:bp-7.0` manifest (`launch_env.sh` / `agnos.json`, baseline `18.5`). Upstream SunnyPilot AGNOS changes are strictly blocked.
 
 ---
 
@@ -35,6 +35,7 @@
 > 2. Once on-device SCons compilation and UI boot are confirmed good, proceed immediately to **Phase 4: Phased Isolation & Upstream Merging**.
 > 3. **Phase 4 Execution**:
 >    - Generate an atomic, module-by-module merge plan for incoming `sunnypilot` upstream changes (`upstream/master` -> `bp70`).
+>    - **AGNOS Merge Guard**: Strictly retain BluePilot's AGNOS version (`launch_env.sh` and `agnos.json`); never accept SunnyPilot AGNOS bumps.
 >    - Integrate changes incrementally (one subsystem at a time: e.g. Controls/MADS, Navigation/Mapd, UI/MICI, Models, etc.).
 >    - Validate with `py_compile` and unit tests after each module.
 >    - Auto-commit validated increments and pause for device verification to isolate regressions immediately.
