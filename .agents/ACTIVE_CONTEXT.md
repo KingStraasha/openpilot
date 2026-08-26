@@ -11,7 +11,7 @@
 - **Bus Architecture**: Ford CAN-FD via Q4 harness (`CarHarness.ford_q4`)
 - **Radar Interface**: `RADAR.STEER_ASSIST_DATA` (`ford_lincoln_base_pt` DBC) over CAN-FD bus
 - **Steering Control Type**: `SteerControlType.angle` (Angle-based lateral control)
-- **Target Device**: comma 4 (`mici`) / AGNOS 18.5 (`AGNOS_VERSION="18.5"`)
+- **Target Device**: comma 4 (`mici`) / AGNOS dynamically specified by repo (`launch_env.sh` / `agnos.json`, baseline currently `18.5`)
 
 ---
 

@@ -43,7 +43,7 @@ This document provides a comprehensive guide to understanding, navigating, and m
 - **Current Branch:** `bp70` / `bp-7.0` (active release track)
 - **Main Dev Branch:** `bp-dev`
 - **Platform:** comma 4 (`mici`), comma 3X (`tizi`), comma 3 (`tici`)
-- **AGNOS:** 18.5
+- **AGNOS:** Defined dynamically by repository manifest (`launch_env.sh` / `agnos.json`, currently 18.5)
 - **Focus:** Ford-specific enhancements for lateral/longitudinal control, hybrid vehicle support, and enhanced UI
 
 ### What Makes BluePilot Unique
@@ -62,7 +62,7 @@ This section captures the essential hardware, operating system, vehicle porting 
 
 ### 1. Target Hardware & OS Environment
 - **Device Hardware**: Comma 4 (`mici` platform architecture).
-- **Operating System**: AGNOS 18.5 (`AGNOS_VERSION="18.5"`, system manifest defined in `openpilot/system/hardware/comma/agnos.json`).
+- **Operating System**: Dynamic AGNOS target version governed by the repository configuration (`$AGNOS_VERSION` in `launch_env.sh` and system manifest in `openpilot/system/hardware/comma/agnos.json`; baseline currently `18.5`).
 - **Boot Lifecycle & Initialization**:
   - `launch_chffrplus.sh` executes `agnos_init`: runs `sudo abctl --set_success` on current slot, verifies AGNOS image manifest, purges stale `/data/scons_cache/config.lock` and `/data/etc/NetworkManager/system-connections/*.nmmeta`.
   - Sets real-time GPU/ion permissions (`sudo chmod 660 /dev/adsprpc-smd /dev/ion /dev/kgsl-3d0`).
