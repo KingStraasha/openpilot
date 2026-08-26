@@ -35,10 +35,15 @@
 > 2. Once on-device SCons compilation and UI boot are confirmed good, proceed immediately to **Phase 4: Phased Isolation & Upstream Merging**.
 > 3. **Phase 4 Execution**:
 >    - Generate an atomic, module-by-module merge plan for incoming `sunnypilot` upstream changes (`upstream/master` -> `bp70`).
->    - **AGNOS Merge Guard**: Strictly retain BluePilot's AGNOS version (`launch_env.sh` and `agnos.json`); never accept SunnyPilot AGNOS bumps.
->    - Integrate changes incrementally (one subsystem at a time: e.g. Controls/MADS, Navigation/Mapd, UI/MICI, Models, etc.).
->    - Validate with `py_compile` and unit tests after each module.
->    - Auto-commit validated increments and pause for device verification to isolate regressions immediately.
+>    - **Mandatory Merge Guards**:
+>      - *AGNOS*: Strictly retain BluePilot's AGNOS version (`launch_env.sh`, `agnos.json`); block SunnyPilot AGNOS bumps.
+>      - *Boot Hooks*: Retain BluePilot startup hooks in `launch_chffrplus.sh` (`agnos_init`, `fix_egl_adreno`, `cereal` symlink, `selfdrive/ui/bp` symlink, `bp_build.py`).
+>      - *Asset / LFS*: Retain `.gitattributes` binary overrides (`-filter -text`) for all BP assets.
+>      - *Submodules*: Fetch upstream with `git fetch --no-recurse-submodules`.
+>    - **Two-Tier Verification**:
+>      - Tier 1: Local `py_compile` on modified Python modules + unit tests.
+>      - Tier 2: On-device SCons build + UI boot confirmation before next increment.
+>    - Auto-commit validated increments directly to `bp70` and pause for device verification after each module.
 
 ---
 

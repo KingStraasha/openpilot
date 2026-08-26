@@ -126,6 +126,16 @@ This section captures the essential hardware, operating system, vehicle porting 
   - *Issue:* `bp_spinner` working directory path misconfiguration (`system/ui` instead of `openpilot/system/ui`) and DBus try/else exception handling syntax bugs in `wifi_manager.py`.
   - *Mitigation:* Validated and fixed paths to prevent UI daemon startup crashes.
 
+### 5. Mandatory Upstream Merge Guards (Phase 4 Integration Rules)
+When integrating upstream `sunnypilot` changes incrementally, agents and developers must enforce the following non-negotiable guards:
+1. **AGNOS Merge Guard**: Never adopt incoming AGNOS version bumps or image manifests (`launch_env.sh`, `agnos.json`). AGNOS versioning is strictly governed by `BluePilotDev/bluepilot:bp-7.0`.
+2. **Launch Script Boot Hooks Guard**: Preserve all BluePilot startup hooks in `launch_chffrplus.sh` (`agnos_init`, `fix_egl_adreno`, `cereal` repo-root symlink, `openpilot/selfdrive/ui/bp` symlink, and `./bp_build.py` fallback).
+3. **Git LFS Bypass Guard**: Maintain `.gitattributes` overrides (`-filter -text`) for all BluePilot binary assets (`selfdrive/assets/bp_themes/**`, `icons_mici/**`, `sounds/bluepilot/**`, `spinner_bluepilot.png`) to prevent broken Git LFS pointers.
+4. **Submodule Fetch Guard**: Always fetch upstream with `git fetch --no-recurse-submodules` to avoid fatal errors from outdated/removed upstream submodule references.
+5. **Two-Tier Verification Workflow**:
+   - **Tier 1 (Pre-Commit)**: Fast local Python syntax and compilation check (`python3 -m py_compile <modified_files>`) plus relevant unit tests.
+   - **Tier 2 (Pre-Increment)**: On-device SCons build and UI boot verification before proceeding to subsequent upstream module integrations.
+
 ---
 
 ## Core Architecture Principle
