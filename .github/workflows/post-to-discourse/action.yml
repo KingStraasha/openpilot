@@ -42,6 +42,12 @@ runs:
       id: post
       shell: bash
       run: |
+        # Check if Discourse configuration is provided
+        if [ -z "${{ inputs.discourse-url }}" ] || [ -z "${{ inputs.api-key }}" ]; then
+          echo "⚠️  Discourse URL or API key not configured. Skipping Discourse notification."
+          exit 0
+        fi
+
         # Validate inputs
         if [ -z "${{ inputs.topic-id }}" ] && ([ -z "${{ inputs.category-id }}" ] || [ -z "${{ inputs.title }}" ]); then
           echo "❌ Error: Must provide either topic-id OR both category-id and title"
