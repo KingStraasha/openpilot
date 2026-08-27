@@ -130,7 +130,7 @@ class ModelsLayoutMici(NavScroller):
 
   def _select_model(self, bundle):
     ui_state.params.remove("ModelManager_CancelDownload")
-    ui_state.params.put("ModelManager_DownloadIndex", str(bundle.index))
+    ui_state.params.put("ModelManager_DownloadIndex", int(bundle.index))
     if bundle.ref:
       ui_state.params.put("ModelManager_DownloadRef", str(bundle.ref))
     self._reset_main_view()
