@@ -5,6 +5,7 @@ This file is part of sunnypilot and is licensed under the MIT License.
 See the LICENSE.md file in the root directory for more details.
 """
 
+import json
 import os
 import time
 
@@ -71,26 +72,24 @@ class ModelParser:
       model.type = custom.ModelManagerSP.Model.Type.supercombo
 
     model.artifact = ModelParser._parse_artifact(model_data.get("artifact", {}))
-    if metadata := model_data.get("metadata"):
-      model.metadata = ModelParser._parse_artifact(metadata)
-    else:
-      model.metadata = ModelParser._parse_artifact({})
+    model.metadata = ModelParser._parse_artifact(model_data.get("metadata", {}))
     return model
 
   @staticmethod
   def _parse_overrides(overrides_data: dict[str, str]) -> list[custom.ModelManagerSP.Override]:
     overrides = []
-    for key, value in overrides_data.items():
-      override = custom.ModelManagerSP.Override()
-      override.key = str(key or "")
-      override.value = str(value or "")
-      overrides.append(override)
+    if isinstance(overrides_data, dict):
+      for key, value in overrides_data.items():
+        override = custom.ModelManagerSP.Override()
+        override.key = str(key or "")
+        override.value = str(value or "")
+        overrides.append(override)
     return overrides
 
   @staticmethod
   def _parse_bundle(bundle) -> custom.ModelManagerSP.ModelBundle:
     model_bundle = custom.ModelManagerSP.ModelBundle()
-    model_bundle.index = int(bundle["index"])
+    model_bundle.index = int(bundle.get("index", 0))
     model_bundle.internalName = str(bundle.get("short_name") or "")
     model_bundle.displayName = str(bundle.get("display_name") or "")
     model_bundle.models = [ModelParser._parse_model(model) for model in bundle.get("models", [])]
@@ -114,6 +113,8 @@ class ModelParser:
 
   @staticmethod
   def parse_models(json_data: dict) -> list[custom.ModelManagerSP.ModelBundle]:
+    if not isinstance(json_data, dict):
+      return []
     found_bundles = [ModelParser._parse_bundle(bundle) for bundle in json_data.get("bundles", [])]
     return [bundle for bundle in found_bundles if is_bundle_version_compatible(bundle.to_dict())]
 
@@ -130,12 +131,23 @@ class ModelCache:
 
   def _is_expired(self) -> bool:
     """Checks if the cache has expired"""
-    current_time = int(time.monotonic() * 1e9)
-    last_sync = self.params.get(self._LAST_SYNC_KEY) or 0
-    cached_url = self.params.get(self._CACHE_URL_KEY)
-    if cached_url != ModelFetcher.MODEL_URL:
+    try:
+      current_time = int(time.monotonic() * 1e9)
+      raw_last_sync = self.params.get(self._LAST_SYNC_KEY)
+      last_sync = 0
+      if raw_last_sync:
+        try:
+          last_sync = int(raw_last_sync.decode('utf-8') if isinstance(raw_last_sync, bytes) else str(raw_last_sync))
+        except (ValueError, TypeError):
+          last_sync = 0
+
+      raw_cached_url = self.params.get(self._CACHE_URL_KEY)
+      cached_url = raw_cached_url.decode('utf-8') if isinstance(raw_cached_url, bytes) else str(raw_cached_url or "")
+      if cached_url != ModelFetcher.MODEL_URL:
+        return True
+      return bool(last_sync == 0) or (current_time - last_sync) >= self.cache_timeout
+    except Exception:
       return True
-    return bool(last_sync == 0) or (current_time - last_sync) >= self.cache_timeout
 
   def get(self) -> tuple[dict, bool]:
     """
@@ -144,10 +156,26 @@ class ModelCache:
     If no cached data exists or on error, returns an empty dict
     """
     try:
-      cached_data = self.params.get(self._CACHE_KEY)
-      if not cached_data:
+      raw_cached_data = self.params.get(self._CACHE_KEY)
+      if not raw_cached_data:
         cloudlog.warning("No cached model data available")
         return {}, True
+
+      cached_data = raw_cached_data
+      if isinstance(cached_data, bytes):
+        try:
+          cached_data = json.loads(cached_data.decode('utf-8'))
+        except Exception:
+          cached_data = {}
+      elif isinstance(cached_data, str):
+        try:
+          cached_data = json.loads(cached_data)
+        except Exception:
+          cached_data = {}
+
+      if not isinstance(cached_data, dict):
+        cached_data = {}
+
       return cached_data, self._is_expired()
     except Exception as e:
       cloudlog.exception(f"Error retrieving cached model data: {str(e)}")
@@ -155,9 +183,13 @@ class ModelCache:
 
   def set(self, data: dict) -> None:
     """Updates the cache with new model data"""
-    self.params.put(self._CACHE_KEY, data, block=True)
-    self.params.put(self._LAST_SYNC_KEY, int(time.monotonic() * 1e9), block=True)
-    self.params.put(self._CACHE_URL_KEY, ModelFetcher.MODEL_URL, block=True)
+    try:
+      raw = json.dumps(data)
+      self.params.put(self._CACHE_KEY, raw)
+      self.params.put(self._LAST_SYNC_KEY, str(int(time.monotonic() * 1e9)))
+      self.params.put(self._CACHE_URL_KEY, ModelFetcher.MODEL_URL)
+    except Exception as e:
+      cloudlog.exception(f"Error saving model cache: {str(e)}")
 
 
 class ModelFetcher:
@@ -174,7 +206,7 @@ class ModelFetcher:
     Returns None on transport errors. Raises on 404 and other fatal HTTP errors.
     """
     try:
-      response = requests.get(self.MODEL_URL, timeout=10)
+      response = requests.get(self.MODEL_URL, timeout=15)
 
       # Explicitly handle 404 differently
       if response.status_code == 404:
@@ -204,19 +236,21 @@ class ModelFetcher:
     """Gets the list of available models, with smart cache handling"""
     cached_data, is_expired = self.model_cache.get()
 
-    if cached_data and not is_expired:
-      cloudlog.debug("Using valid cached models data")
-      return self.model_parser.parse_models(cached_data)
+    if not is_expired and cached_data:
+      bundles = self.model_parser.parse_models(cached_data)
+      if bundles:
+        return bundles
 
     fetched_bundles = self._fetch_and_cache_models()
-    if fetched_bundles is not None:
+    if fetched_bundles:
       return fetched_bundles
 
-    if not cached_data:
-      cloudlog.warning("Failed to fetch fresh data and no cache available")
+    if cached_data:
+      cloudlog.warning("Using expired cache as fallback")
+      return self.model_parser.parse_models(cached_data)
 
-    cloudlog.warning("Failed to fetch fresh data. Using expired cache as fallback")
-    return self.model_parser.parse_models(cached_data)
+    cloudlog.warning("Failed to fetch fresh data and no cache available")
+    return []
 
 if __name__ == "__main__":
   params = Params()

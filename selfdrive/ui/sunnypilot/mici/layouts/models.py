@@ -78,12 +78,21 @@ class ModelsLayoutMici(NavScroller):
 
   def _get_grouped_bundles(self, favorites = None):
     bundles = self.model_manager.availableBundles
+    if not bundles:
+      try:
+        from openpilot.sunnypilot.models.fetcher import ModelFetcher
+        bundles = ModelFetcher(ui_state.params).get_available_bundles()
+      except Exception:
+        bundles = []
+
     folders = {}
     for bundle in bundles:
       folder = next((override.value for override in bundle.overrides if override.key == "folder"), "")
+      if not folder:
+        folder = "other models"
       folders.setdefault(folder, []).append(bundle)
 
-    if favorites:
+    if favorites and bundles:
       for fav_bundle in [bundle for bundle in bundles if bundle.ref in favorites]:
         folders.setdefault("favorites", []).append(fav_bundle)
 
