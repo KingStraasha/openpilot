@@ -19,7 +19,7 @@ from openpilot.sunnypilot.models.constants import Meta, MetaSimPose, MetaTombRai
 from openpilot.system.hardware.hw import Paths
 
 # SET ME TO THE EXACT JSON VERSION WE SET IN SUNNYPILOT_MODELS REPO
-REQUIRED_JSON_VERSION = 22
+REQUIRED_JSON_VERSION = 21
 
 CUSTOM_MODEL_PATH = Paths.model_root()
 METADATA_PATH = Path(__file__).parent / '../models/supercombo_metadata.pkl'
