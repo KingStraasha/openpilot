@@ -74,7 +74,7 @@ class ModelManagerSP:
           f.write(chunk)
           bytes_downloaded += len(chunk)
 
-          if self.params.get("ModelManager_DownloadIndex") is None:
+          if self.params.get_bool("ModelManager_CancelDownload"):
             raise Exception("Download cancelled")
 
           if total_size > 0:
@@ -90,14 +90,22 @@ class ModelManagerSP:
 
   def _download_chunked(self, base_url: str, base_path: str, artifact) -> None:
     from openpilot.common.file_chunker import get_manifest_path, get_chunk_name
-    manifest_url = get_manifest_path(base_url)
     manifest_path = get_manifest_path(base_path)
 
-    resp = requests.get(manifest_url, timeout=15)
-    if resp.status_code == 404:
-      raise FileNotFoundError
-    resp.raise_for_status()
-    num_chunks = int(resp.text.strip())
+    num_chunks = None
+    if os.path.exists(manifest_path):
+      try:
+        num_chunks = int(open(manifest_path).read().strip())
+      except Exception:
+        pass
+
+    if num_chunks is None:
+      manifest_url = get_manifest_path(base_url)
+      resp = requests.get(manifest_url, timeout=15)
+      if resp.status_code == 404:
+        raise FileNotFoundError
+      resp.raise_for_status()
+      num_chunks = int(resp.text.strip())
 
     self._download_start_times[artifact.fileName] = time.monotonic()
 
@@ -114,7 +122,7 @@ class ModelManagerSP:
               continue
             f.write(data)
             chunk_downloaded += len(data)
-            if self.params.get("ModelManager_DownloadIndex") is None:
+            if self.params.get_bool("ModelManager_CancelDownload"):
               raise Exception("Download cancelled")
             intra = chunk_downloaded / max(chunk_size, 1)
             progress = min(99, (i + intra) / num_chunks * 100)
@@ -180,8 +188,10 @@ class ModelManagerSP:
     model_artifact = model.artifact
     metadata_artifact = model.metadata
 
-    self._process_artifact(metadata_artifact, destination_path)
-    self._process_artifact(model_artifact, destination_path)
+    if metadata_artifact.downloadUri.uri:
+      self._process_artifact(metadata_artifact, destination_path)
+    if model_artifact.downloadUri.uri:
+      self._process_artifact(model_artifact, destination_path)
 
   def _report_status(self) -> None:
     """Reports current status through messaging system"""
@@ -242,15 +252,33 @@ class ModelManagerSP:
         validate_active_bundle(self.params, self.available_models)
         self.active_bundle = get_active_bundle(self.params)
 
-        if (index_to_download := self.params.get("ModelManager_DownloadIndex")) is not None:
-          if model_to_download := next((model for model in self.available_models if model.index == index_to_download), None):
+        download_idx = self.params.get("ModelManager_DownloadIndex")
+        download_ref = self.params.get("ModelManager_DownloadRef")
+        if download_idx is not None or download_ref is not None:
+          self.params.remove("ModelManager_CancelDownload")
+          model_to_download = None
+          if download_ref:
+            ref_str = download_ref.decode('utf-8') if isinstance(download_ref, bytes) else str(download_ref)
+            model_to_download = next((model for model in self.available_models if str(model.ref) == ref_str), None)
+          if not model_to_download and download_idx is not None:
+            try:
+              idx_val = download_idx.decode('utf-8') if isinstance(download_idx, bytes) else str(download_idx)
+              idx_int = int(idx_val)
+              model_to_download = next((model for model in self.available_models if int(model.index) == idx_int), None)
+            except (ValueError, TypeError) as e:
+              cloudlog.warning(f"Invalid ModelManager_DownloadIndex: {download_idx} ({e})")
+
+          if model_to_download:
             try:
               self.download(model_to_download, Paths.model_root())
             except Exception as e:
               cloudlog.exception(e)
-            finally:
-              self.params.remove("ModelManager_DownloadIndex")
-              self.selected_bundle = None
+          else:
+            cloudlog.warning(f"Could not find model to download for index={download_idx}, ref={download_ref}")
+
+          self.params.remove("ModelManager_DownloadIndex")
+          self.params.remove("ModelManager_DownloadRef")
+          self.selected_bundle = None
 
         if self.params.get("ModelManager_ClearCache"):
           self.clear_model_cache()
