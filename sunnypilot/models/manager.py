@@ -89,55 +89,6 @@ class ModelManagerSP:
       # Clean up start time after download completes
       self._download_start_times.pop(model.fileName, None)
 
-  def _download_chunked(self, base_url: str, base_path: str, artifact) -> None:
-    from openpilot.common.file_chunker import get_manifest_path, get_chunk_name
-    manifest_path = get_manifest_path(base_path)
-
-    num_chunks = None
-    if os.path.exists(manifest_path):
-      try:
-        num_chunks = int(open(manifest_path).read().strip())
-      except Exception:
-        pass
-
-    if num_chunks is None:
-      manifest_url = get_manifest_path(base_url)
-      resp = requests.get(manifest_url, timeout=15)
-      if resp.status_code == 404:
-        raise FileNotFoundError
-      resp.raise_for_status()
-      num_chunks = int(resp.text.strip())
-
-    self._download_start_times[artifact.fileName] = time.monotonic()
-
-    for i in range(num_chunks):
-      chunk_url = get_chunk_name(base_url, i, num_chunks)
-      chunk_path = get_chunk_name(base_path, i, num_chunks)
-      chunk_downloaded = 0
-      with requests.get(chunk_url, stream=True, timeout=30) as response:
-        response.raise_for_status()
-        chunk_size = int(response.headers.get("content-length", 0))
-        with open(chunk_path, 'wb') as f:
-          for data in response.iter_content(chunk_size=self._chunk_size):
-            if not data:
-              continue
-            f.write(data)
-            chunk_downloaded += len(data)
-            if self.params.get_bool("ModelManager_CancelDownload"):
-              raise Exception("Download cancelled")
-            intra = chunk_downloaded / max(chunk_size, 1)
-            progress = min(99, (i + intra) / num_chunks * 100)
-            artifact.downloadProgress.status = custom.ModelManagerSP.DownloadStatus.downloading
-            artifact.downloadProgress.progress = progress
-            artifact.downloadProgress.eta = self._calculate_eta(artifact.fileName, progress)
-            self._sync_artifact_progress(artifact)
-            self._report_status()
-
-    with open(manifest_path, 'w') as f:
-      f.write(str(num_chunks))
-    if os.path.isfile(base_path):
-      os.remove(base_path)
-    self._download_start_times.pop(artifact.fileName, None)
 
   def _process_artifact(self, artifact, destination_path: str) -> None:
     if not artifact.downloadUri.uri:
@@ -157,10 +108,7 @@ class ModelManagerSP:
         self._report_status()
         return
 
-      try:
-        self._download_chunked(url, full_path, artifact)
-      except (FileNotFoundError, requests.HTTPError, requests.RequestException):
-        self._download_file(url, full_path, artifact)
+      self._download_file(url, full_path, artifact)
 
       if not _verify_file(full_path, expected_hash):
         raise ValueError(f"Hash validation failed for {filename}")
