@@ -5,6 +5,7 @@ This file is part of sunnypilot and is licensed under the MIT License.
 See the LICENSE.md file in the root directory for more details.
 """
 
+import os
 import time
 
 import requests
@@ -12,6 +13,7 @@ from requests.exceptions import (SSLError, RequestException, HTTPError)
 from openpilot.common.params import Params
 from openpilot.common.swaglog import cloudlog
 from openpilot.sunnypilot.models.helpers import is_bundle_version_compatible
+from openpilot.system.hardware.hw import Paths
 
 from cereal import custom
 
@@ -31,6 +33,21 @@ class ModelParser:
     artifact = custom.ModelManagerSP.Artifact()
     artifact.fileName = str(artifact_data.get("file_name") or "")
     artifact.downloadUri = ModelParser._parse_download_uri(artifact_data.get("download_uri", {}))
+
+    if "chunks" in artifact_data and artifact.fileName:
+      try:
+        model_dir = Paths.model_root()
+        os.makedirs(model_dir, exist_ok=True)
+        manifest_path = os.path.join(model_dir, f"{artifact.fileName}.chunkmanifest")
+        num_chunks = str(len(artifact_data["chunks"]))
+
+        if not os.path.exists(manifest_path) or open(manifest_path).read().strip() != num_chunks:
+          with open(manifest_path, "w") as f:
+            f.write(num_chunks)
+          cloudlog.info(f"Wrote chunk manifest for {artifact.fileName}: {num_chunks} chunks")
+      except Exception as e:
+        cloudlog.warning(f"Failed to write chunk manifest for {artifact.fileName}: {e}")
+
     return artifact
 
   @staticmethod
