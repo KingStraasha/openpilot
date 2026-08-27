@@ -57,5 +57,5 @@ Last Updated: 2026-08-26
 | **Phase 1 (2026-08-26)** | **DONE** | Extracted full Comma 4 (`mici`), Ford F-150 Lightning CAN-FD, Antigravity 2.0 toolchain constraints, and build blocker mitigations into `AGENTS.md` (Section 2). |
 | **Phase 2 (2026-08-26)** | **DONE** | Executed clean 1-to-1 baseline clone of `bluepilot/bp-7.0` (`origin/bp-7.0`), verified submodules, remotes, preserved `AGENTS.md` and `.agents/`, and pushed clean baseline to `fork/bp70`. |
 | **Phase 3 (2026-08-26)** | **DONE** | Baseline verified. Upstream sync points and merge guards validated. |
-| **Phase 4 - Module 1 (2026-08-26)** | **COMPLETED** | Models & Model Daemon v2 integration: migrated `ModelManagerSP` to synchronous requests stream chunks, updated `REQUIRED_JSON_VERSION` to 17, verified test suite, preserved AGNOS 18.5 locks and boot hooks. |
+| **Phase 4 - Module 1 (2026-08-26)** | **COMPLETED** | Models & Model Daemon v2 integration: updated `MODEL_URL` to `driving_models_v21.json`, updated `REQUIRED_JSON_VERSION` to 21 with `<=` comparison check in `is_bundle_version_compatible`, added chunked model parsing support, and migrated `ModelManagerSP` to synchronous requests stream chunks. |
 | **Phase 4 - Module 2 (Pending)** | **QUEUED** | UI & Widget Enhancements (4-state eGPU icon for Comma 4 `mici`, big model failure detection, scroll label timing). |

@@ -37,7 +37,22 @@ class ModelParser:
   def _parse_model(model_data) -> custom.ModelManagerSP.Model:
     model = custom.ModelManagerSP.Model()
 
-    model.type = model_data.get("type")
+    m_type = model_data.get("type", "supercombo")
+    if m_type in ("chunked", "supercombo", None):
+      model.type = custom.ModelManagerSP.Model.Type.supercombo
+    elif m_type == "vision":
+      model.type = custom.ModelManagerSP.Model.Type.vision
+    elif m_type == "policy":
+      model.type = custom.ModelManagerSP.Model.Type.policy
+    elif m_type == "offPolicy":
+      model.type = custom.ModelManagerSP.Model.Type.offPolicy
+    elif m_type == "onPolicy":
+      model.type = custom.ModelManagerSP.Model.Type.onPolicy
+    elif m_type == "navigation":
+      model.type = custom.ModelManagerSP.Model.Type.navigation
+    else:
+      model.type = custom.ModelManagerSP.Model.Type.supercombo
+
     model.artifact = ModelParser._parse_artifact(model_data.get("artifact", {}))
     if metadata := model_data.get("metadata"):
       model.metadata = ModelParser._parse_artifact(metadata)
@@ -57,17 +72,24 @@ class ModelParser:
   def _parse_bundle(bundle) -> custom.ModelManagerSP.ModelBundle:
     model_bundle = custom.ModelManagerSP.ModelBundle()
     model_bundle.index = int(bundle["index"])
-    model_bundle.internalName = bundle["short_name"]
-    model_bundle.displayName = bundle["display_name"]
-    model_bundle.models = [ModelParser._parse_model(model) for model in bundle.get("models",[])]
+    model_bundle.internalName = str(bundle.get("short_name", ""))
+    model_bundle.displayName = str(bundle.get("display_name", ""))
+    model_bundle.models = [ModelParser._parse_model(model) for model in bundle.get("models", [])]
     model_bundle.status = 0
-    model_bundle.generation = int(bundle["generation"])
-    model_bundle.environment = bundle["environment"]
-    model_bundle.runner = bundle.get("runner", custom.ModelManagerSP.Runner.snpe)
-    model_bundle.is20hz = bundle.get("is_20hz", False)
-    model_bundle.minimumSelectorVersion = int(bundle["minimum_selector_version"])
+    model_bundle.generation = int(bundle.get("generation", 0))
+    model_bundle.environment = str(bundle.get("environment", ""))
+    runner = bundle.get("runner", "tinygrad")
+    if runner == "tinygrad":
+      model_bundle.runner = custom.ModelManagerSP.Runner.tinygrad
+    elif runner == "snpe":
+      model_bundle.runner = custom.ModelManagerSP.Runner.snpe
+    else:
+      model_bundle.runner = custom.ModelManagerSP.Runner.stock
+    model_bundle.is20hz = bool(bundle.get("is_20hz", False))
+    min_ver = bundle.get("minimum_selector_version", bundle.get("minimumSelectorVersion", 18))
+    model_bundle.minimumSelectorVersion = int(min_ver)
     model_bundle.overrides = ModelParser._parse_overrides(bundle.get("overrides", {}))
-    model_bundle.ref = bundle.get("ref")
+    model_bundle.ref = str(bundle.get("ref", ""))
 
     return model_bundle
 
@@ -85,11 +107,15 @@ class ModelCache:
     self.cache_timeout = cache_timeout
     self._LAST_SYNC_KEY = "ModelManager_LastSyncTime"
     self._CACHE_KEY = "ModelManager_ModelsCache"
+    self._CACHE_URL_KEY = "ModelManager_CacheURL"
 
   def _is_expired(self) -> bool:
     """Checks if the cache has expired"""
     current_time = int(time.monotonic() * 1e9)
     last_sync = self.params.get(self._LAST_SYNC_KEY) or 0
+    cached_url = self.params.get(self._CACHE_URL_KEY)
+    if cached_url != ModelFetcher.MODEL_URL:
+      return True
     return bool(last_sync == 0) or (current_time - last_sync) >= self.cache_timeout
 
   def get(self) -> tuple[dict, bool]:
@@ -112,11 +138,12 @@ class ModelCache:
     """Updates the cache with new model data"""
     self.params.put(self._CACHE_KEY, data, block=True)
     self.params.put(self._LAST_SYNC_KEY, int(time.monotonic() * 1e9), block=True)
+    self.params.put(self._CACHE_URL_KEY, ModelFetcher.MODEL_URL, block=True)
 
 
 class ModelFetcher:
   """Handles fetching and caching of model data from remote source"""
-  MODEL_URL = "https://raw.githubusercontent.com/sunnypilot/sunnypilot-models/refs/heads/gh-pages/docs/driving_models_v17.json"
+  MODEL_URL = "https://raw.githubusercontent.com/sunnypilot/sunnypilot-models/refs/heads/gh-pages/docs/driving_models_v21.json"
 
   def __init__(self, params: Params):
     self.params = params

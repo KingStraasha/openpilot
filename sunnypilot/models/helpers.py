@@ -18,7 +18,7 @@ from openpilot.sunnypilot.models.constants import Meta, MetaSimPose, MetaTombRai
 from openpilot.system.hardware.hw import Paths
 
 # SET ME TO THE EXACT JSON VERSION WE SET IN SUNNYPILOT_MODELS REPO
-REQUIRED_JSON_VERSION = 17
+REQUIRED_JSON_VERSION = 21
 
 CUSTOM_MODEL_PATH = Paths.model_root()
 METADATA_PATH = Path(__file__).parent / '../models/supercombo_metadata.pkl'
@@ -48,9 +48,13 @@ def is_bundle_version_compatible(bundle: dict) -> bool:
   """
   The bundle parsed from the json specifies a `minimum_selector_version`, which defines the minimum selector version
   required to load the model. This function ensures that:
-    the bundle MUST match the `REQUIRED_JSON_VERSION` set here in helpers.
+    the bundle's minimum selector version does not exceed the `REQUIRED_JSON_VERSION` supported by this client.
   """
-  return bundle.get("minimumSelectorVersion", 0) == REQUIRED_JSON_VERSION
+  min_ver = bundle.get("minimumSelectorVersion", bundle.get("minimum_selector_version", 0))
+  try:
+    return int(min_ver) <= REQUIRED_JSON_VERSION
+  except (ValueError, TypeError):
+    return True
 
 
 def _bundle_artifacts(bundle: custom.ModelManagerSP.ModelBundle) -> list[tuple[str, str]]:
