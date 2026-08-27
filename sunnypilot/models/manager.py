@@ -5,11 +5,10 @@ This file is part of sunnypilot and is licensed under the MIT License.
 See the LICENSE.md file in the root directory for more details.
 """
 
-import asyncio
 import os
 import time
 
-import aiohttp
+import requests
 from openpilot.common.params import Params
 from openpilot.common.realtime import Ratekeeper
 from openpilot.common.swaglog import cloudlog
@@ -17,7 +16,7 @@ from openpilot.system.hardware.hw import Paths
 
 from cereal import messaging, custom
 from openpilot.sunnypilot.models.fetcher import ModelFetcher
-from openpilot.sunnypilot.models.helpers import get_active_bundle, validate_active_bundle, verify_file
+from openpilot.sunnypilot.models.helpers import get_active_bundle, validate_active_bundle, _verify_file
 
 
 class ModelManagerSP:
@@ -59,46 +58,46 @@ class ModelManagerSP:
 
     return max(1, int(eta))  # Return at least 1 second if download is ongoing
 
-  async def _download_file(self, url: str, path: str, model) -> None:
-    """Downloads a file with progress tracking"""
+  def _download_file(self, url: str, path: str, model) -> None:
+    """Downloads a file with progress tracking using requests"""
     self._download_start_times[model.fileName] = time.monotonic()
 
-    async with aiohttp.ClientSession() as session:
-      async with session.get(url) as response:
-        response.raise_for_status()
-        total_size = int(response.headers.get("content-length", 0))
-        bytes_downloaded = 0
+    with requests.get(url, stream=True, timeout=30) as response:
+      response.raise_for_status()
+      total_size = int(response.headers.get("content-length", 0))
+      bytes_downloaded = 0
 
-        with open(path, 'wb') as f:
-          async for chunk in response.content.iter_chunked(self._chunk_size):  # type: bytes
-            f.write(chunk)
-            bytes_downloaded += len(chunk)
+      with open(path, 'wb') as f:
+        for chunk in response.iter_content(chunk_size=self._chunk_size):
+          if not chunk:
+            continue
+          f.write(chunk)
+          bytes_downloaded += len(chunk)
 
-            if self.params.get("ModelManager_DownloadIndex") is None:
-              raise Exception("Download cancelled")
+          if self.params.get("ModelManager_DownloadIndex") is None:
+            raise Exception("Download cancelled")
 
-            if total_size > 0:
-              progress = (bytes_downloaded / total_size) * 100
-              model.downloadProgress.status = custom.ModelManagerSP.DownloadStatus.downloading
-              model.downloadProgress.progress = progress
-              model.downloadProgress.eta = self._calculate_eta(model.fileName, progress)
-              self._sync_artifact_progress(model)
-              self._report_status()
+          if total_size > 0:
+            progress = (bytes_downloaded / total_size) * 100
+            model.downloadProgress.status = custom.ModelManagerSP.DownloadStatus.downloading
+            model.downloadProgress.progress = progress
+            model.downloadProgress.eta = self._calculate_eta(model.fileName, progress)
+            self._sync_artifact_progress(model)
+            self._report_status()
 
-        # Clean up start time after download completes
-        del self._download_start_times[model.fileName]
+      # Clean up start time after download completes
+      self._download_start_times.pop(model.fileName, None)
 
-  async def _download_chunked(self, base_url: str, base_path: str, artifact) -> None:
+  def _download_chunked(self, base_url: str, base_path: str, artifact) -> None:
     from openpilot.common.file_chunker import get_manifest_path, get_chunk_name
     manifest_url = get_manifest_path(base_url)
     manifest_path = get_manifest_path(base_path)
 
-    async with aiohttp.ClientSession() as session:
-      async with session.get(manifest_url) as resp:
-        if resp.status == 404:
-          raise FileNotFoundError
-        resp.raise_for_status()
-        num_chunks = int((await resp.read()).strip())
+    resp = requests.get(manifest_url, timeout=15)
+    if resp.status_code == 404:
+      raise FileNotFoundError
+    resp.raise_for_status()
+    num_chunks = int(resp.text.strip())
 
     self._download_start_times[artifact.fileName] = time.monotonic()
 
@@ -106,31 +105,32 @@ class ModelManagerSP:
       chunk_url = get_chunk_name(base_url, i, num_chunks)
       chunk_path = get_chunk_name(base_path, i, num_chunks)
       chunk_downloaded = 0
-      async with aiohttp.ClientSession() as session:
-        async with session.get(chunk_url) as response:
-          response.raise_for_status()
-          chunk_size = int(response.headers.get("content-length", 0))
-          with open(chunk_path, 'wb') as f:
-            async for data in response.content.iter_chunked(self._chunk_size):
-              f.write(data)
-              chunk_downloaded += len(data)
-              if self.params.get("ModelManager_DownloadIndex") is None:
-                raise Exception("Download cancelled")
-              intra = chunk_downloaded / max(chunk_size, 1)
-              progress = min(99, (i + intra) / num_chunks * 100)
-              artifact.downloadProgress.status = custom.ModelManagerSP.DownloadStatus.downloading
-              artifact.downloadProgress.progress = progress
-              artifact.downloadProgress.eta = self._calculate_eta(artifact.fileName, progress)
-              self._sync_artifact_progress(artifact)
-              self._report_status()
+      with requests.get(chunk_url, stream=True, timeout=30) as response:
+        response.raise_for_status()
+        chunk_size = int(response.headers.get("content-length", 0))
+        with open(chunk_path, 'wb') as f:
+          for data in response.iter_content(chunk_size=self._chunk_size):
+            if not data:
+              continue
+            f.write(data)
+            chunk_downloaded += len(data)
+            if self.params.get("ModelManager_DownloadIndex") is None:
+              raise Exception("Download cancelled")
+            intra = chunk_downloaded / max(chunk_size, 1)
+            progress = min(99, (i + intra) / num_chunks * 100)
+            artifact.downloadProgress.status = custom.ModelManagerSP.DownloadStatus.downloading
+            artifact.downloadProgress.progress = progress
+            artifact.downloadProgress.eta = self._calculate_eta(artifact.fileName, progress)
+            self._sync_artifact_progress(artifact)
+            self._report_status()
 
     with open(manifest_path, 'w') as f:
       f.write(str(num_chunks))
     if os.path.isfile(base_path):
       os.remove(base_path)
-    del self._download_start_times[artifact.fileName]
+    self._download_start_times.pop(artifact.fileName, None)
 
-  async def _process_artifact(self, artifact, destination_path: str) -> None:
+  def _process_artifact(self, artifact, destination_path: str) -> None:
     if not artifact.downloadUri.uri:
       return None
 
@@ -140,7 +140,7 @@ class ModelManagerSP:
     full_path = os.path.join(destination_path, filename)
 
     try:
-      if await verify_file(full_path, expected_hash):
+      if _verify_file(full_path, expected_hash):
         artifact.downloadProgress.status = custom.ModelManagerSP.DownloadStatus.cached
         artifact.downloadProgress.progress = 100
         artifact.downloadProgress.eta = 0
@@ -149,11 +149,11 @@ class ModelManagerSP:
         return
 
       try:
-        await self._download_chunked(url, full_path, artifact)
-      except (FileNotFoundError, aiohttp.ClientResponseError):
-        await self._download_file(url, full_path, artifact)
+        self._download_chunked(url, full_path, artifact)
+      except (FileNotFoundError, requests.HTTPError, requests.RequestException):
+        self._download_file(url, full_path, artifact)
 
-      if not await verify_file(full_path, expected_hash):
+      if not _verify_file(full_path, expected_hash):
         raise ValueError(f"Hash validation failed for {filename}")
 
       artifact.downloadProgress.status = custom.ModelManagerSP.DownloadStatus.downloaded
@@ -175,13 +175,13 @@ class ModelManagerSP:
       self._download_start_times.pop(artifact.fileName, None)
       raise
 
-  async def _process_model(self, model, destination_path: str) -> None:
+  def _process_model(self, model, destination_path: str) -> None:
     """Processes a single model download including verification"""
     model_artifact = model.artifact
     metadata_artifact = model.metadata
 
-    await self._process_artifact(metadata_artifact, destination_path)
-    await self._process_artifact(model_artifact, destination_path)
+    self._process_artifact(metadata_artifact, destination_path)
+    self._process_artifact(model_artifact, destination_path)
 
   def _report_status(self) -> None:
     """Reports current status through messaging system"""
@@ -196,7 +196,7 @@ class ModelManagerSP:
     model_manager_state.availableBundles = self.available_models
     self.pm.send('modelManagerSP', msg)
 
-  async def _download_bundle(self, model_bundle: custom.ModelManagerSP.ModelBundle, destination_path: str) -> None:
+  def _download_bundle(self, model_bundle: custom.ModelManagerSP.ModelBundle, destination_path: str) -> None:
     """Downloads all models in a bundle"""
     self.selected_bundle = model_bundle
     self.selected_bundle.status = custom.ModelManagerSP.DownloadStatus.downloading
@@ -214,7 +214,7 @@ class ModelManagerSP:
             artifact.downloadProgress.eta = 0
           else:
             seen_artifacts.add(artifact.fileName)
-            await self._process_artifact(artifact, destination_path)
+            self._process_artifact(artifact, destination_path)
 
       self.active_bundle = self.selected_bundle
       self.active_bundle.status = custom.ModelManagerSP.DownloadStatus.downloaded
@@ -230,7 +230,7 @@ class ModelManagerSP:
 
   def download(self, model_bundle: custom.ModelManagerSP.ModelBundle, destination_path: str) -> None:
     """Main entry point for downloading a model bundle"""
-    asyncio.run(self._download_bundle(model_bundle, destination_path))
+    self._download_bundle(model_bundle, destination_path)
 
   def main_thread(self) -> None:
     """Main thread for model management"""

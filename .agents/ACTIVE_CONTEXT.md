@@ -1,6 +1,8 @@
 # Active Project Context & Multi-Device Memory
 
-*Last Updated: 2026-08-26*
+## Metadata
+
+Last Updated: 2026-08-26
 
 ---
 
@@ -31,19 +33,20 @@
 
 > [!IMPORTANT]
 > **RESUMPTION TRIGGER**: When the user types **"Let's Continue"** (or similar):
-> 1. Check if the user has tested downloading the baseline `bp70` onto the Comma 4 (`mici`).
-> 2. Once on-device SCons compilation and UI boot are confirmed good, proceed immediately to **Phase 4: Phased Isolation & Upstream Merging**.
-> 3. **Phase 4 Execution**:
->    - Generate an atomic, module-by-module merge plan for incoming `sunnypilot` upstream changes (`upstream/master` -> `bp70`).
->    - **Mandatory Merge Guards**:
->      - *AGNOS*: Strictly retain BluePilot's AGNOS version (`launch_env.sh`, `agnos.json`); block SunnyPilot AGNOS bumps.
->      - *Boot Hooks*: Retain BluePilot startup hooks in `launch_chffrplus.sh` (`agnos_init`, `fix_egl_adreno`, `cereal` symlink, `selfdrive/ui/bp` symlink, `bp_build.py`).
->      - *Asset / LFS*: Retain `.gitattributes` binary overrides (`-filter -text`) for all BP assets.
->      - *Submodules*: Fetch upstream with `git fetch --no-recurse-submodules`.
->    - **Two-Tier Verification**:
->      - Tier 1: Local `py_compile` on modified Python modules + unit tests.
->      - Tier 2: On-device SCons build + UI boot confirmation before next increment.
->    - Auto-commit validated increments directly to `bp70` and pause for device verification after each module.
+
+1. Check if the user has tested downloading the baseline `bp70` onto the Comma 4 (`mici`).
+2. Once on-device SCons compilation and UI boot are confirmed good, proceed immediately to **Phase 4: Phased Isolation & Upstream Merging**.
+3. **Phase 4 Execution**:
+   - Generate an atomic, module-by-module merge plan for incoming `sunnypilot` upstream changes (`upstream/master` -> `bp70`).
+   - **Mandatory Merge Guards**:
+     - *AGNOS*: Strictly retain BluePilot's AGNOS version (`launch_env.sh`, `agnos.json`); block SunnyPilot AGNOS bumps.
+     - *Boot Hooks*: Retain BluePilot startup hooks in `launch_chffrplus.sh` (`agnos_init`, `fix_egl_adreno`, `cereal` symlink, `selfdrive/ui/bp` symlink, `bp_build.py`).
+     - *Asset / LFS*: Retain `.gitattributes` binary overrides (`-filter -text`) for all BP assets.
+     - *Submodules*: Fetch upstream with `git fetch --no-recurse-submodules`.
+   - **Two-Tier Verification**:
+     - Tier 1: Local `py_compile` on modified Python modules + unit tests.
+     - Tier 2: On-device SCons build + UI boot confirmation before next increment.
+   - Auto-commit validated increments directly to `bp70` and pause for device verification after each module.
 
 ---
 
@@ -53,5 +56,6 @@
 | :--- | :--- | :--- |
 | **Phase 1 (2026-08-26)** | **DONE** | Extracted full Comma 4 (`mici`), Ford F-150 Lightning CAN-FD, Antigravity 2.0 toolchain constraints, and build blocker mitigations into `AGENTS.md` (Section 2). |
 | **Phase 2 (2026-08-26)** | **DONE** | Executed clean 1-to-1 baseline clone of `bluepilot/bp-7.0` (`origin/bp-7.0`), verified submodules, remotes, preserved `AGENTS.md` and `.agents/`, and pushed clean baseline to `fork/bp70`. |
-| **Phase 3 (2026-08-26)** | **IN PROGRESS** | Baseline pushed to `fork/bp70`. Awaiting user on-device download & boot verification on Comma 4. |
-| **Phase 4 (Pending)** | **QUEUED** | Phased isolation & upstream SunnyPilot merge upon resumption signal ("Let's Continue"). |
+| **Phase 3 (2026-08-26)** | **DONE** | Baseline verified. Upstream sync points and merge guards validated. |
+| **Phase 4 - Module 1 (2026-08-26)** | **COMPLETED** | Models & Model Daemon v2 integration: migrated `ModelManagerSP` to synchronous requests stream chunks, updated `REQUIRED_JSON_VERSION` to 17, verified test suite, preserved AGNOS 18.5 locks and boot hooks. |
+| **Phase 4 - Module 2 (Pending)** | **QUEUED** | UI & Widget Enhancements (4-state eGPU icon for Comma 4 `mici`, big model failure detection, scroll label timing). |
