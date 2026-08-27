@@ -87,51 +87,27 @@ class ModelParser:
     return overrides
 
   @staticmethod
-  def _parse_bundle(key: str, bundle: dict) -> custom.ModelManagerSP.ModelBundle:
+  def _parse_bundle(bundle) -> custom.ModelManagerSP.ModelBundle:
     model_bundle = custom.ModelManagerSP.ModelBundle()
     model_bundle.index = int(bundle.get("index", 0))
-    model_bundle.internalName = str(key)
+    model_bundle.internalName = str(bundle.get("short_name") or "")
     model_bundle.displayName = str(bundle.get("display_name") or "")
-    
-    # In v5, the dictionary is flat, so we manually construct the models
-    models = []
-    
-    # 1. Supercombo model
-    supercombo = custom.ModelManagerSP.Model()
-    supercombo.type = custom.ModelManagerSP.Model.Type.supercombo
-    supercombo.artifact = ModelParser._parse_artifact({
-      "file_name": bundle.get("file_name"),
-      "download_uri": bundle.get("download_uri", {})
-    })
-    supercombo.metadata = ModelParser._parse_artifact({
-      "file_name": bundle.get("file_name_metadata"),
-      "download_uri": bundle.get("download_uri_metadata", {})
-    })
-    models.append(supercombo)
-    
-    # 2. Navigation model (if available)
-    if bundle.get("file_name_nav"):
-      nav_model = custom.ModelManagerSP.Model()
-      nav_model.type = custom.ModelManagerSP.Model.Type.navigation
-      nav_model.artifact = ModelParser._parse_artifact({
-        "file_name": bundle.get("file_name_nav"),
-        "download_uri": bundle.get("download_uri_nav", {})
-      })
-      models.append(nav_model)
-      
-    model_bundle.models = models
+    model_bundle.models = [ModelParser._parse_model(model) for model in bundle.get("models", [])]
     model_bundle.status = custom.ModelManagerSP.DownloadStatus.notDownloading
     model_bundle.generation = int(bundle.get("generation") or 0)
     model_bundle.environment = str(bundle.get("environment") or "")
-    
-    # Default to tinygrad for modern models unless specified
-    model_bundle.runner = custom.ModelManagerSP.Runner.tinygrad
+    runner = str(bundle.get("runner") or "tinygrad")
+    if runner == "tinygrad":
+      model_bundle.runner = custom.ModelManagerSP.Runner.tinygrad
+    elif runner == "snpe":
+      model_bundle.runner = custom.ModelManagerSP.Runner.snpe
+    else:
+      model_bundle.runner = custom.ModelManagerSP.Runner.stock
     model_bundle.is20hz = bool(bundle.get("is_20hz", False))
     min_ver = bundle.get("minimum_selector_version", bundle.get("minimumSelectorVersion", 18))
     model_bundle.minimumSelectorVersion = int(min_ver)
     model_bundle.overrides = ModelParser._parse_overrides(bundle.get("overrides", {}))
-    # Sunnylink uses full_name as the ref identifier now
-    model_bundle.ref = str(bundle.get("full_name") or "")
+    model_bundle.ref = str(bundle.get("ref") or "")
 
     return model_bundle
 
@@ -139,13 +115,7 @@ class ModelParser:
   def parse_models(json_data: dict) -> list[custom.ModelManagerSP.ModelBundle]:
     if not isinstance(json_data, dict):
       return []
-    
-    # v5 schema is a dictionary of models, not a list of bundles
-    found_bundles = []
-    for key, bundle_data in json_data.items():
-      if isinstance(bundle_data, dict):
-        found_bundles.append(ModelParser._parse_bundle(key, bundle_data))
-        
+    found_bundles = [ModelParser._parse_bundle(bundle) for bundle in json_data.get("bundles", [])]
     return [bundle for bundle in found_bundles if is_bundle_version_compatible(bundle.to_dict())]
 
 
@@ -224,7 +194,7 @@ class ModelCache:
 
 class ModelFetcher:
   """Handles fetching and caching of model data from remote source"""
-  MODEL_URL = "https://raw.githubusercontent.com/sunnypilot/sunnypilot-models/refs/heads/gh-pages/docs/models_v5.json"
+  MODEL_URL = "https://raw.githubusercontent.com/sunnypilot/sunnypilot-models/refs/heads/gh-pages/docs/driving_models_v21.json"
 
   def __init__(self, params: Params):
     self.params = params
