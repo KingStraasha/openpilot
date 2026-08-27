@@ -28,6 +28,9 @@ SP_BRANCH_MIGRATIONS = {
   ("tizi", "release3-staging"): "release-tizi-staging",
   ("mici", "release3"): "release-mici",
   ("mici", "release3-staging"): "release-mici-staging",
+  ("mici", "bp70"): "bp-7.0",
+  ("tici", "bp70"): "bp-7.0",
+  ("tizi", "bp70"): "bp-7.0",
 }
 
 BUILD_METADATA_FILENAME = "build.json"

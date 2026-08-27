@@ -379,15 +379,20 @@ class Updater:
     cloudlog.info("git reset in progress")
     cmds = [
       ["git", "checkout", "--force", "--no-recurse-submodules", "-B", branch, "FETCH_HEAD"],
-      ["git", "branch", "--set-upstream-to", f"origin/{branch}"],
-      ["git", "reset", "--hard"],
-      ["git", "clean", "-xdff"],
       ["git", "submodule", "sync"],
       ["git", "submodule", "update", "--init", "--recursive"],
-      ["git", "submodule", "foreach", "--recursive", "git", "reset", "--hard"],
     ]
     r = [run(cmd, OVERLAY_MERGED) for cmd in cmds]
-    cloudlog.info("git reset success: %s", '\n'.join(r))
+    
+    # Try setting upstream, but don't fail if the remote branch isn't set up yet
+    try:
+      run(["git", "branch", "--set-upstream-to", f"origin/{branch}"], OVERLAY_MERGED)
+      r.append("git branch set-upstream-to success")
+    except subprocess.CalledProcessError as e:
+      cloudlog.warning(f"Failed to set upstream branch: {e}")
+      r.append(f"git branch set-upstream-to failed: {e}")
+      
+    cloudlog.info("git checkout success: %s", '\n'.join(r))
 
     # TODO: show agnos download progress
     if AGNOS:
