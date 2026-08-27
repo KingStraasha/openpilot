@@ -206,7 +206,7 @@ class ModelManagerSP:
       seen_artifacts: set[str] = set()
       for model in self.selected_bundle.models:
         for artifact in (model.metadata, model.artifact):
-          if not artifact.fileName:
+          if not artifact.fileName or not artifact.downloadUri.uri:
             continue
           if artifact.fileName in seen_artifacts:
             artifact.downloadProgress.status = custom.ModelManagerSP.DownloadStatus.cached

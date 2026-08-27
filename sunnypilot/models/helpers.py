@@ -62,9 +62,10 @@ def _bundle_artifacts(bundle: custom.ModelManagerSP.ModelBundle) -> list[tuple[s
   for model in getattr(bundle, 'models', []) or []:
     for artifact in (getattr(model, 'artifact', None), getattr(model, 'metadata', None)):
       if artifact and getattr(artifact, 'fileName', None) and getattr(artifact, 'downloadUri', None):
-        sha256 = getattr(artifact.downloadUri, 'sha256', None)
-        if sha256:
-          artifacts.append((artifact.fileName, sha256))
+        fileName = getattr(artifact, 'fileName', '')
+        sha256 = getattr(artifact.downloadUri, 'sha256', '')
+        if fileName and sha256:
+          artifacts.append((fileName, sha256))
   return artifacts
 
 

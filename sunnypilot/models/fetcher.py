@@ -22,14 +22,14 @@ class ModelParser:
   @staticmethod
   def _parse_download_uri(download_uri_data) -> custom.ModelManagerSP.DownloadUri:
     download_uri = custom.ModelManagerSP.DownloadUri()
-    download_uri.uri = download_uri_data.get("url")
-    download_uri.sha256 = download_uri_data.get("sha256")
+    download_uri.uri = str(download_uri_data.get("url") or "")
+    download_uri.sha256 = str(download_uri_data.get("sha256") or "")
     return download_uri
 
   @staticmethod
   def _parse_artifact(artifact_data) -> custom.ModelManagerSP.Artifact:
     artifact = custom.ModelManagerSP.Artifact()
-    artifact.fileName = artifact_data.get("file_name")
+    artifact.fileName = str(artifact_data.get("file_name") or "")
     artifact.downloadUri = ModelParser._parse_download_uri(artifact_data.get("download_uri", {}))
     return artifact
 
@@ -56,6 +56,8 @@ class ModelParser:
     model.artifact = ModelParser._parse_artifact(model_data.get("artifact", {}))
     if metadata := model_data.get("metadata"):
       model.metadata = ModelParser._parse_artifact(metadata)
+    else:
+      model.metadata = ModelParser._parse_artifact({})
     return model
 
   @staticmethod
@@ -63,8 +65,8 @@ class ModelParser:
     overrides = []
     for key, value in overrides_data.items():
       override = custom.ModelManagerSP.Override()
-      override.key = key
-      override.value = value
+      override.key = str(key or "")
+      override.value = str(value or "")
       overrides.append(override)
     return overrides
 
@@ -72,13 +74,13 @@ class ModelParser:
   def _parse_bundle(bundle) -> custom.ModelManagerSP.ModelBundle:
     model_bundle = custom.ModelManagerSP.ModelBundle()
     model_bundle.index = int(bundle["index"])
-    model_bundle.internalName = str(bundle.get("short_name", ""))
-    model_bundle.displayName = str(bundle.get("display_name", ""))
+    model_bundle.internalName = str(bundle.get("short_name") or "")
+    model_bundle.displayName = str(bundle.get("display_name") or "")
     model_bundle.models = [ModelParser._parse_model(model) for model in bundle.get("models", [])]
-    model_bundle.status = 0
-    model_bundle.generation = int(bundle.get("generation", 0))
-    model_bundle.environment = str(bundle.get("environment", ""))
-    runner = bundle.get("runner", "tinygrad")
+    model_bundle.status = custom.ModelManagerSP.DownloadStatus.notDownloading
+    model_bundle.generation = int(bundle.get("generation") or 0)
+    model_bundle.environment = str(bundle.get("environment") or "")
+    runner = str(bundle.get("runner") or "tinygrad")
     if runner == "tinygrad":
       model_bundle.runner = custom.ModelManagerSP.Runner.tinygrad
     elif runner == "snpe":
@@ -89,7 +91,7 @@ class ModelParser:
     min_ver = bundle.get("minimum_selector_version", bundle.get("minimumSelectorVersion", 18))
     model_bundle.minimumSelectorVersion = int(min_ver)
     model_bundle.overrides = ModelParser._parse_overrides(bundle.get("overrides", {}))
-    model_bundle.ref = str(bundle.get("ref", ""))
+    model_bundle.ref = str(bundle.get("ref") or "")
 
     return model_bundle
 
