@@ -7,6 +7,7 @@ See the LICENSE.md file in the root directory for more details.
 
 import os
 import time
+import json
 
 import requests
 from openpilot.common.params import Params
@@ -228,7 +229,7 @@ class ModelManagerSP:
 
       self.active_bundle = self.selected_bundle
       self.active_bundle.status = custom.ModelManagerSP.DownloadStatus.downloaded
-      self.params.put("ModelManager_ActiveBundle", self.active_bundle.to_dict(), block=True)
+      self.params.put("ModelManager_ActiveBundle", json.dumps(self.active_bundle.to_dict()), block=True)
       self.selected_bundle = None
 
     except Exception:

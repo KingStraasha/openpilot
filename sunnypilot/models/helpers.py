@@ -5,6 +5,7 @@ This file is part of sunnypilot and is licensed under the MIT License.
 See the LICENSE.md file in the root directory for more details.
 """
 
+import json
 import hashlib
 import os
 import pickle
@@ -129,7 +130,15 @@ def validate_active_bundle(params: Params, available_bundles: list[custom.ModelM
 def get_active_bundle(params: Params | None = None, raw_bundle_dict: dict | bytes | None = None) -> "custom.ModelManagerSP.ModelBundle | None":
   params = params or Params()
   try:
-    active_bundle_dict = raw_bundle_dict if raw_bundle_dict is not None else (params.get("ModelManager_ActiveBundle") or {})
+    raw = raw_bundle_dict if raw_bundle_dict is not None else params.get("ModelManager_ActiveBundle")
+    active_bundle_dict = {}
+    if isinstance(raw, bytes):
+      active_bundle_dict = json.loads(raw.decode('utf-8'))
+    elif isinstance(raw, str):
+      active_bundle_dict = json.loads(raw)
+    elif isinstance(raw, dict):
+      active_bundle_dict = raw
+
     if active_bundle_dict and is_bundle_version_compatible(active_bundle_dict):
       return custom.ModelManagerSP.ModelBundle(**active_bundle_dict)
   except Exception:
