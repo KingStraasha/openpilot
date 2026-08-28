@@ -133,10 +133,13 @@ class ModelsLayoutMici(NavScroller):
     ui_state.params.put("ModelManager_DownloadIndex", int(bundle.index))
     if bundle.ref:
       ui_state.params.put("ModelManager_DownloadRef", str(bundle.ref))
+    if bundle.status in (custom.ModelManagerSP.DownloadStatus.cached, custom.ModelManagerSP.DownloadStatus.downloaded):
+      ui_state.params.put_bool("DoReboot", True)
     self._reset_main_view()
 
   def _select_default(self):
     ui_state.params.remove("ModelManager_ActiveBundle")
+    ui_state.params.put_bool("DoReboot", True)
     self._reset_main_view()
 
   def _select_folder(self, folder_name):

@@ -184,6 +184,13 @@ class ModelManagerSP:
       try:
         self._download_chunked(url, full_path, artifact)
       except FileNotFoundError:
+        from openpilot.common.file_chunker import get_manifest_path
+        manifest_path = get_manifest_path(full_path)
+        if os.path.exists(manifest_path):
+          try:
+            os.remove(manifest_path)
+          except OSError:
+            pass
         self._download_file(url, full_path, artifact)
 
       if not _verify_file(full_path, expected_hash):
