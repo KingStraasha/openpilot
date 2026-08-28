@@ -8,15 +8,18 @@ common_libs = [
 ]
 
 _common = env.Library('common', common_libs, LIBS="json11")
-Export('_common')
+# BluePilot: build compatibility shim object for linker
+glibcxx_compat = env.Object('glibcxx_compat.cc')
+Export('_common', 'glibcxx_compat')
+# End BluePilot
 
 if GetOption('extras'):
   env.Program('tests/test_common',
               ['tests/test_runner.cc', 'tests/test_params.cc', 'tests/test_util.cc', 'tests/test_swaglog.cc'],
-              LIBS=[_common, 'json11', 'zmq', 'pthread'])
+              LIBS=[_common, 'json11', 'zmq', glibcxx_compat, 'pthread'])
 
 # Cython bindings
-params_python = envCython.Program('params_pyx.so', 'params_pyx.pyx', LIBS=envCython['LIBS'] + [_common, 'zmq', 'json11'])
+params_python = envCython.Program('params_pyx.so', 'params_pyx.pyx', LIBS=envCython['LIBS'] + [_common, 'json11', 'zmq', glibcxx_compat])
 
 common_python = [params_python]
 

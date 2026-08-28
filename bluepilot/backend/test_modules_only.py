@@ -85,10 +85,7 @@ def test_new_modules():
 
     if tests_failed == 0:
         print("\nAll new modules working correctly! ✓")
-        return True
-    else:
-        print(f"\n{tests_failed} test(s) failed")
-        return False
+    assert tests_failed == 0, f"{tests_failed} test(s) failed"
 
 
 if __name__ == "__main__":

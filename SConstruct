@@ -58,7 +58,7 @@ acados_include_dirs = [
 allowed_system_libs = {
   "EGL", "GLESv2", "GL",
   "Qt5Charts", "Qt5Core", "Qt5Gui", "Qt5Widgets",
-  "dl", "drm", "gbm", "m", "pthread",
+  "dl", "drm", "gbm", "m", "pthread", "rt", "stdc++fs",
 }
 
 def _resolve_lib(env, name):
@@ -88,13 +88,19 @@ def _libflags(target, source, env, for_signature):
   return _stripixes(env['LIBLINKPREFIX'], libs, env['LIBLINKSUFFIX'],
                     env['LIBPREFIXES'], env['LIBSUFFIXES'], env, env['LIBLITERALPREFIX'])
 
+# BluePilot: provide LLVM_PATH fallback for host builds on Linux
+if not os.environ.get('LLVM_PATH') and os.path.exists('/usr/lib64/llvm17/lib/libLLVM-17.so'):
+  os.environ['LLVM_PATH'] = '/usr/lib64/llvm17/lib/libLLVM-17.so'
+# End BluePilot
+
 env = Environment(
   ENV={
     "PATH": os.environ['PATH'],
     "PYTHONPATH": Dir("#").abspath,
     "ACADOS_SOURCE_DIR": acados.DIR,
     "ACADOS_PYTHON_INTERFACE_PATH": acados.TEMPLATE_DIR,
-    "TERA_PATH": acados.TERA_PATH
+    "TERA_PATH": acados.TERA_PATH,
+    "LLVM_PATH": os.environ.get('LLVM_PATH', ''),
   },
   CCFLAGS=[
     "-g",
@@ -212,8 +218,10 @@ def prune_cache_dir(target=None, source=None, env=None):
 
 # Build common module
 SConscript(['common/SConscript'])
-Import('_common')
-common = [_common, 'json11', 'zmq']
+# BluePilot: import glibcxx_compat node
+Import('_common', 'glibcxx_compat')
+common = [_common, 'json11', 'zmq', glibcxx_compat, 'stdc++fs']
+# End BluePilot
 Export('common')
 
 # Build messaging (cereal + msgq + socketmaster + their dependencies)
@@ -225,7 +233,7 @@ SConscript(['msgq_repo/SConscript'], exports={'env': env_swaglog})
 SConscript(['cereal/SConscript'])
 
 Import('socketmaster', 'msgq')
-messaging = [socketmaster, msgq, 'capnp', 'kj',]
+messaging = [socketmaster, msgq, 'capnp', 'kj', 'rt']
 Export('messaging')
 
 

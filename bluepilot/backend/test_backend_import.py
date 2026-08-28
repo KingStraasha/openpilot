@@ -89,7 +89,7 @@ def test_imports():
 
     print("=" * 60)
     print("All imports successful! ✓")
-    return True
+    assert True
 
 
 if __name__ == "__main__":

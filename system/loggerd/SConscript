@@ -15,7 +15,7 @@ else:
     frameworks += ['VideoToolbox', 'CoreMedia', 'CoreFoundation', 'CoreVideo']
 
 if arch != "Darwin":
-  libs += ['va', 'va-drm', 'drm']
+  libs += ['va', 'va-drm', 'drm', 'dl']
 
 logger_lib = env.Library('logger', src)
 libs.insert(0, logger_lib)

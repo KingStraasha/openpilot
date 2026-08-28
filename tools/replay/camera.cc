@@ -10,8 +10,16 @@
 const int BUFFER_COUNT = 40;
 
 CameraServer::CameraServer(std::pair<int, int> camera_size[MAX_CAMERAS]) {
-  for (int i = 0; i < MAX_CAMERAS; ++i) {
-    std::tie(cameras_[i].width, cameras_[i].height) = camera_size[i];
+  cameras_[RoadCam].type = RoadCam;
+  cameras_[RoadCam].stream_type = VISION_STREAM_ROAD;
+  cameras_[DriverCam].type = DriverCam;
+  cameras_[DriverCam].stream_type = VISION_STREAM_DRIVER;
+  cameras_[WideRoadCam].type = WideRoadCam;
+  cameras_[WideRoadCam].stream_type = VISION_STREAM_WIDE_ROAD;
+  if (camera_size) {
+    for (int i = 0; i < MAX_CAMERAS; ++i) {
+      std::tie(cameras_[i].width, cameras_[i].height) = camera_size[i];
+    }
   }
   startVipcServer();
 }
