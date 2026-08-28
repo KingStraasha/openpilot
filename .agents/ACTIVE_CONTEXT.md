@@ -2,7 +2,7 @@
 
 ## Metadata
 
-Last Updated: 2026-08-27
+Last Updated: 2026-08-28
 
 ---
 
@@ -14,7 +14,9 @@ Last Updated: 2026-08-27
 - **Radar Interface**: `RADAR.STEER_ASSIST_DATA` (`ford_lincoln_base_pt` DBC) over CAN-FD bus
 - **Steering Control Type**: `SteerControlType.angle` (Angle-based lateral control)
 - **Target Device**: comma 4 (`mici`) / AGNOS locked strictly to `BluePilotDev/bluepilot:bp-7.0` manifest (`launch_env.sh` / `agnos.json`, baseline `18.5`). Upstream SunnyPilot AGNOS changes are strictly blocked.
-- **Development Toolchain**: Antigravity 2.0 (v2.11.0) & Antigravity IDE on Rocky Linux 8.10.
+- **Development Toolchain & Topology**:
+  - **Client Laptops**: Local Antigravity IDE instances connecting via Remote-SSH / Tunnel to `landscapevm`; browser access to Antigravity 2.0 Web UI (`http://192.168.10.15:7070`).
+  - **Host Server (`landscapevm` @ 192.168.10.15)**: Centrally hosts `/srv/workspaces/bluepilot`, Antigravity 2.0 Daemon Hub (`:7071` via Nginx `:7070`), Antigravity IDE Server (`~/.antigravity-ide-server/`), and AGY CLI (`/usr/local/bin/agy` v1.1.22). Zero file drift across roaming client laptops.
 
 ---
 
@@ -55,6 +57,7 @@ Last Updated: 2026-08-27
 | **Phase 3 (2026-08-26)** | **DONE** | Baseline verified. Upstream sync points and merge guards validated. |
 | **Core Subsytem Triage (2026-08-28)** | **RESOLVED** | **1. GitHub Updater Crash Fix**: Fixed `system/updated/updated.py` to prevent destructive `git clean -xdff` and `git reset --hard` in OverlayFS mounts (preventing Comma 4 kernel panics), wrapped `git branch --set-upstream-to` in try/except, and added missing `bp70 -> bp-7.0` branch mapping to `system/version.py`.<br>**2. Model Manager Manifest Alignment & Download Fix**: Verified `driving_models_v21.json` is the correct standard manifest for Comma 4 Snapdragon NPU. Debugged silent download failures in `sunnypilot/models/manager.py` by adding `User-Agent: SunnyPilot/1.0` headers to bypass HuggingFace rate-limits/Cloudflare blocks, correcting the chunked-fallback exception logic to prevent `HTTPError(404)` file wiping, and adding a 3-attempt chunk resume/retry loop for spotty connections.<br>**3. Model Transition & Cache Interference Fix**: Root-caused why the system reverted to CD210 after a successful model download. Fixed a bug in `models/manager.py` where a stale `.chunkmanifest` written during JSON parsing caused local verification (`_verify_file`) to fail when falling back to a solid `.pkl` file download, which resulted in the active model being silently wiped. Additionally, added the missing `DoReboot = True` flag to `selfdrive/ui/sunnypilot/mici/layouts/models.py` when selecting a downloaded model, ensuring `modeld` dynamically restarts to load the newly selected model instead of persisting on CD210.<br>**4. Visual SCons Build Screen Fix**: Addressed a cosmetic but confusing bug during device boot where the SCons build screen appeared frozen on a `kj/filesystem-disk-unix.c++:1734:warning` Cap'n Proto warning for 2-4 minutes while compiling in the background. Removed the explicit `"PWD": BASEDIR` environment override in `system/manager/bp_build.py` and `build.py` which was conflicting with the physical mount path of the repository, silencing the warning. |
 | **CI / Discourse Fix (2026-08-27)** | **RESOLVED** | Removed `.github/workflows/test-discourse.yaml.yml` debug workflow that failed on every push; added credentials guard in `post-to-discourse/action.yml`. |
-| **Antigravity Upgrade (2026-08-27)** | **COMPLETED** | Upgraded Antigravity 2.0 desktop platform to **v2.11.0** at `/opt/antigravity/` and `/usr/local/bin/antigravity`, verified IPC host bridge and full integration with Antigravity IDE. |
-| **Handoff (2026-08-28)** | **READY FOR PHASE 4** | All blocker bugs, CI issues, and UI visual issues resolved and pushed to `fork/bp70` (Latest commit includes SCons PWD warning fix). Ready to continue Phase 4 upstream module integration upon user typing "Let's continue". |
+| **Antigravity External Access & Process Safety (2026-08-28)** | **RESOLVED** | Verified external host access via Nginx reverse proxy on port 7070 (`HTTP 200 OK`). Added permanent background process safety rule in `.agents/rules/process_safety.md` enforcing strict execution timeouts (`timeout <N>s`, `curl --max-time --no-keepalive`) and socket boundaries to prevent hung tasks. |
+| **Multi-Laptop Topology Integration (2026-08-28)** | **COMPLETED** | Established and documented canonical multi-laptop client architecture connecting remotely to `landscapevm` (192.168.10.15), hosting Antigravity 2.0 Hub (:7070), AGY CLI, and IDE Server. |
+| **Handoff (2026-08-28)** | **READY (Awaiting Trigger)** | All blocker bugs, CI issues, UI visual issues, Antigravity 2.0 access, and multi-device architecture fully verified and locked in. Standing by on current baseline; Phase 4 upstream module integration will begin only upon explicit user instruction. |
 
