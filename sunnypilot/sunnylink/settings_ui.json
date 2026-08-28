@@ -2037,6 +2037,11 @@
                   "type": "param",
                   "key": "EnforceTorqueControl",
                   "equals": false
+                },
+                {
+                  "type": "param",
+                  "key": "LateralJerkTorqueController",
+                  "equals": false
                 }
               ]
             }
