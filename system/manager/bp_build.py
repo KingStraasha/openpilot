@@ -84,7 +84,7 @@ def build() -> None:
       last_status = f"Retrying build ({' '.join(parallelism) or 'all cores'})..."
       spinner.update_progress_with_text(0, 100, last_status)
 
-    with subprocess.Popen(["scons", *parallelism], cwd=BASEDIR, env={**os.environ, "PWD": BASEDIR}, stderr=subprocess.PIPE) as scons:
+    with subprocess.Popen(["scons", *parallelism], cwd=BASEDIR, env=os.environ.copy(), stderr=subprocess.PIPE) as scons:
       assert scons.stderr is not None
 
       while scons.poll() is None:
