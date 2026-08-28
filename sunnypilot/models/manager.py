@@ -61,9 +61,13 @@ class ModelManagerSP:
 
   def _download_file(self, url: str, path: str, model) -> None:
     """Downloads a file with progress tracking using requests"""
+    model.downloadProgress.status = custom.ModelManagerSP.DownloadStatus.downloading
+    self._report_status()
+
+    headers = {'User-Agent': 'SunnyPilot/1.0'}
     self._download_start_times[model.fileName] = time.monotonic()
 
-    with requests.get(url, stream=True, timeout=30) as response:
+    with requests.get(url, stream=True, headers=headers, timeout=30) as response:
       response.raise_for_status()
       total_size = int(response.headers.get("content-length", 0))
       bytes_downloaded = 0
@@ -102,7 +106,8 @@ class ModelManagerSP:
 
     if num_chunks is None:
       manifest_url = get_manifest_path(base_url)
-      resp = requests.get(manifest_url, timeout=15)
+      headers = {'User-Agent': 'SunnyPilot/1.0'}
+      resp = requests.get(manifest_url, headers=headers, timeout=15)
       if resp.status_code == 404:
         raise FileNotFoundError
       resp.raise_for_status()
@@ -113,25 +118,44 @@ class ModelManagerSP:
     for i in range(num_chunks):
       chunk_url = get_chunk_name(base_url, i, num_chunks)
       chunk_path = get_chunk_name(base_path, i, num_chunks)
-      chunk_downloaded = 0
-      with requests.get(chunk_url, stream=True, timeout=30) as response:
-        response.raise_for_status()
-        chunk_size = int(response.headers.get("content-length", 0))
-        with open(chunk_path, 'wb') as f:
-          for data in response.iter_content(chunk_size=self._chunk_size):
-            if not data:
-              continue
-            f.write(data)
-            chunk_downloaded += len(data)
-            if self.params.get_bool("ModelManager_CancelDownload"):
-              raise Exception("Download cancelled")
-            intra = chunk_downloaded / max(chunk_size, 1)
-            progress = min(99, (i + intra) / num_chunks * 100)
-            artifact.downloadProgress.status = custom.ModelManagerSP.DownloadStatus.downloading
-            artifact.downloadProgress.progress = progress
-            artifact.downloadProgress.eta = self._calculate_eta(artifact.fileName, progress)
-            self._sync_artifact_progress(artifact)
-            self._report_status()
+      headers = {'User-Agent': 'SunnyPilot/1.0'}
+
+      try:
+        head_resp = requests.head(chunk_url, headers=headers, timeout=15, allow_redirects=True)
+        if head_resp.status_code == 200:
+          expected_size = int(head_resp.headers.get("content-length", 0))
+          if expected_size > 0 and os.path.exists(chunk_path) and os.path.getsize(chunk_path) == expected_size:
+            continue
+      except Exception:
+        pass
+
+      max_retries = 3
+      for attempt in range(max_retries):
+        chunk_downloaded = 0
+        try:
+          with requests.get(chunk_url, stream=True, headers=headers, timeout=30) as response:
+            response.raise_for_status()
+            chunk_size = int(response.headers.get("content-length", 0))
+            with open(chunk_path, 'wb') as f:
+              for data in response.iter_content(chunk_size=self._chunk_size):
+                if not data:
+                  continue
+                f.write(data)
+                chunk_downloaded += len(data)
+                if self.params.get_bool("ModelManager_CancelDownload"):
+                  raise Exception("Download cancelled")
+                intra = chunk_downloaded / max(chunk_size, 1)
+                progress = min(99, (i + intra) / num_chunks * 100)
+                artifact.downloadProgress.status = custom.ModelManagerSP.DownloadStatus.downloading
+                artifact.downloadProgress.progress = progress
+                artifact.downloadProgress.eta = self._calculate_eta(artifact.fileName, progress)
+                self._sync_artifact_progress(artifact)
+                self._report_status()
+          break
+        except (requests.RequestException, ConnectionError):
+          if attempt == max_retries - 1:
+            raise
+          time.sleep(2)
 
     with open(manifest_path, 'w') as f:
       f.write(str(num_chunks))
@@ -159,7 +183,7 @@ class ModelManagerSP:
 
       try:
         self._download_chunked(url, full_path, artifact)
-      except (FileNotFoundError, requests.HTTPError, requests.RequestException):
+      except FileNotFoundError:
         self._download_file(url, full_path, artifact)
 
       if not _verify_file(full_path, expected_hash):
