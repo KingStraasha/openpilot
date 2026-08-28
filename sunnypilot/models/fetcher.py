@@ -5,7 +5,6 @@ This file is part of sunnypilot and is licensed under the MIT License.
 See the LICENSE.md file in the root directory for more details.
 """
 
-import json
 import os
 import time
 
@@ -25,14 +24,14 @@ class ModelParser:
   @staticmethod
   def _parse_download_uri(download_uri_data) -> custom.ModelManagerSP.DownloadUri:
     download_uri = custom.ModelManagerSP.DownloadUri()
-    download_uri.uri = str(download_uri_data.get("url") or "")
-    download_uri.sha256 = str(download_uri_data.get("sha256") or "")
+    download_uri.uri = download_uri_data.get("url")
+    download_uri.sha256 = download_uri_data.get("sha256")
     return download_uri
 
   @staticmethod
   def _parse_artifact(artifact_data) -> custom.ModelManagerSP.Artifact:
     artifact = custom.ModelManagerSP.Artifact()
-    artifact.fileName = str(artifact_data.get("file_name") or "")
+    artifact.fileName = artifact_data.get("file_name")
     artifact.downloadUri = ModelParser._parse_download_uri(artifact_data.get("download_uri", {}))
 
     if "chunks" in artifact_data and artifact.fileName:
@@ -55,66 +54,42 @@ class ModelParser:
   def _parse_model(model_data) -> custom.ModelManagerSP.Model:
     model = custom.ModelManagerSP.Model()
 
-    m_type = model_data.get("type", "supercombo")
-    if m_type in ("chunked", "supercombo", None):
-      model.type = custom.ModelManagerSP.Model.Type.supercombo
-    elif m_type == "vision":
-      model.type = custom.ModelManagerSP.Model.Type.vision
-    elif m_type == "policy":
-      model.type = custom.ModelManagerSP.Model.Type.policy
-    elif m_type == "offPolicy":
-      model.type = custom.ModelManagerSP.Model.Type.offPolicy
-    elif m_type == "onPolicy":
-      model.type = custom.ModelManagerSP.Model.Type.onPolicy
-    elif m_type == "navigation":
-      model.type = custom.ModelManagerSP.Model.Type.navigation
-    else:
-      model.type = custom.ModelManagerSP.Model.Type.supercombo
-
+    model.type = model_data.get("type")
     model.artifact = ModelParser._parse_artifact(model_data.get("artifact", {}))
-    model.metadata = ModelParser._parse_artifact(model_data.get("metadata", {}))
+    if metadata := model_data.get("metadata"):
+      model.metadata = ModelParser._parse_artifact(metadata)
     return model
 
   @staticmethod
   def _parse_overrides(overrides_data: dict[str, str]) -> list[custom.ModelManagerSP.Override]:
     overrides = []
-    if isinstance(overrides_data, dict):
-      for key, value in overrides_data.items():
-        override = custom.ModelManagerSP.Override()
-        override.key = str(key or "")
-        override.value = str(value or "")
-        overrides.append(override)
+    for key, value in overrides_data.items():
+      override = custom.ModelManagerSP.Override()
+      override.key = key
+      override.value = value
+      overrides.append(override)
     return overrides
 
   @staticmethod
   def _parse_bundle(bundle) -> custom.ModelManagerSP.ModelBundle:
     model_bundle = custom.ModelManagerSP.ModelBundle()
-    model_bundle.index = int(bundle.get("index", 0))
-    model_bundle.internalName = str(bundle.get("short_name") or "")
-    model_bundle.displayName = str(bundle.get("display_name") or "")
-    model_bundle.models = [ModelParser._parse_model(model) for model in bundle.get("models", [])]
-    model_bundle.status = custom.ModelManagerSP.DownloadStatus.notDownloading
-    model_bundle.generation = int(bundle.get("generation") or 0)
-    model_bundle.environment = str(bundle.get("environment") or "")
-    runner = str(bundle.get("runner") or "tinygrad")
-    if runner == "tinygrad":
-      model_bundle.runner = custom.ModelManagerSP.Runner.tinygrad
-    elif runner == "snpe":
-      model_bundle.runner = custom.ModelManagerSP.Runner.snpe
-    else:
-      model_bundle.runner = custom.ModelManagerSP.Runner.stock
-    model_bundle.is20hz = bool(bundle.get("is_20hz", False))
-    min_ver = bundle.get("minimum_selector_version", bundle.get("minimumSelectorVersion", 18))
-    model_bundle.minimumSelectorVersion = int(min_ver)
+    model_bundle.index = int(bundle["index"])
+    model_bundle.internalName = bundle["short_name"]
+    model_bundle.displayName = bundle["display_name"]
+    model_bundle.models = [ModelParser._parse_model(model) for model in bundle.get("models",[])]
+    model_bundle.status = 0
+    model_bundle.generation = int(bundle["generation"])
+    model_bundle.environment = bundle["environment"]
+    model_bundle.runner = bundle.get("runner", custom.ModelManagerSP.Runner.snpe)
+    model_bundle.is20hz = bundle.get("is_20hz", False)
+    model_bundle.minimumSelectorVersion = int(bundle["minimum_selector_version"])
     model_bundle.overrides = ModelParser._parse_overrides(bundle.get("overrides", {}))
-    model_bundle.ref = str(bundle.get("ref") or "")
+    model_bundle.ref = bundle.get("ref")
 
     return model_bundle
 
   @staticmethod
   def parse_models(json_data: dict) -> list[custom.ModelManagerSP.ModelBundle]:
-    if not isinstance(json_data, dict):
-      return []
     found_bundles = [ModelParser._parse_bundle(bundle) for bundle in json_data.get("bundles", [])]
     return [bundle for bundle in found_bundles if is_bundle_version_compatible(bundle.to_dict())]
 
@@ -127,27 +102,12 @@ class ModelCache:
     self.cache_timeout = cache_timeout
     self._LAST_SYNC_KEY = "ModelManager_LastSyncTime"
     self._CACHE_KEY = "ModelManager_ModelsCache"
-    self._CACHE_URL_KEY = "ModelManager_CacheURL"
 
   def _is_expired(self) -> bool:
     """Checks if the cache has expired"""
-    try:
-      current_time = int(time.monotonic() * 1e9)
-      raw_last_sync = self.params.get(self._LAST_SYNC_KEY)
-      last_sync = 0
-      if raw_last_sync:
-        try:
-          last_sync = int(raw_last_sync.decode('utf-8') if isinstance(raw_last_sync, bytes) else str(raw_last_sync))
-        except (ValueError, TypeError):
-          last_sync = 0
-
-      raw_cached_url = self.params.get(self._CACHE_URL_KEY)
-      cached_url = raw_cached_url.decode('utf-8') if isinstance(raw_cached_url, bytes) else str(raw_cached_url or "")
-      if cached_url != ModelFetcher.MODEL_URL:
-        return True
-      return bool(last_sync == 0) or (current_time - last_sync) >= self.cache_timeout
-    except Exception:
-      return True
+    current_time = int(time.monotonic() * 1e9)
+    last_sync = self.params.get(self._LAST_SYNC_KEY) or 0
+    return bool(last_sync == 0) or (current_time - last_sync) >= self.cache_timeout
 
   def get(self) -> tuple[dict, bool]:
     """
@@ -156,26 +116,10 @@ class ModelCache:
     If no cached data exists or on error, returns an empty dict
     """
     try:
-      raw_cached_data = self.params.get(self._CACHE_KEY)
-      if not raw_cached_data:
+      cached_data = self.params.get(self._CACHE_KEY)
+      if not cached_data:
         cloudlog.warning("No cached model data available")
         return {}, True
-
-      cached_data = raw_cached_data
-      if isinstance(cached_data, bytes):
-        try:
-          cached_data = json.loads(cached_data.decode('utf-8'))
-        except Exception:
-          cached_data = {}
-      elif isinstance(cached_data, str):
-        try:
-          cached_data = json.loads(cached_data)
-        except Exception:
-          cached_data = {}
-
-      if not isinstance(cached_data, dict):
-        cached_data = {}
-
       return cached_data, self._is_expired()
     except Exception as e:
       cloudlog.exception(f"Error retrieving cached model data: {str(e)}")
@@ -183,13 +127,8 @@ class ModelCache:
 
   def set(self, data: dict) -> None:
     """Updates the cache with new model data"""
-    try:
-      raw = json.dumps(data)
-      self.params.put(self._CACHE_KEY, raw)
-      self.params.put(self._LAST_SYNC_KEY, str(int(time.monotonic() * 1e9)))
-      self.params.put(self._CACHE_URL_KEY, ModelFetcher.MODEL_URL)
-    except Exception as e:
-      cloudlog.exception(f"Error saving model cache: {str(e)}")
+    self.params.put(self._CACHE_KEY, data, block=True)
+    self.params.put(self._LAST_SYNC_KEY, int(time.monotonic() * 1e9), block=True)
 
 
 class ModelFetcher:
@@ -206,7 +145,7 @@ class ModelFetcher:
     Returns None on transport errors. Raises on 404 and other fatal HTTP errors.
     """
     try:
-      response = requests.get(self.MODEL_URL, timeout=15)
+      response = requests.get(self.MODEL_URL, timeout=10)
 
       # Explicitly handle 404 differently
       if response.status_code == 404:
@@ -236,21 +175,19 @@ class ModelFetcher:
     """Gets the list of available models, with smart cache handling"""
     cached_data, is_expired = self.model_cache.get()
 
-    if not is_expired and cached_data:
-      bundles = self.model_parser.parse_models(cached_data)
-      if bundles:
-        return bundles
-
-    fetched_bundles = self._fetch_and_cache_models()
-    if fetched_bundles:
-      return fetched_bundles
-
-    if cached_data:
-      cloudlog.warning("Using expired cache as fallback")
+    if cached_data and not is_expired:
+      cloudlog.debug("Using valid cached models data")
       return self.model_parser.parse_models(cached_data)
 
-    cloudlog.warning("Failed to fetch fresh data and no cache available")
-    return []
+    fetched_bundles = self._fetch_and_cache_models()
+    if fetched_bundles is not None:
+      return fetched_bundles
+
+    if not cached_data:
+      cloudlog.warning("Failed to fetch fresh data and no cache available")
+
+    cloudlog.warning("Failed to fetch fresh data. Using expired cache as fallback")
+    return self.model_parser.parse_models(cached_data)
 
 if __name__ == "__main__":
   params = Params()

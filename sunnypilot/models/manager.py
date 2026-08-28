@@ -5,11 +5,11 @@ This file is part of sunnypilot and is licensed under the MIT License.
 See the LICENSE.md file in the root directory for more details.
 """
 
+import asyncio
 import os
 import time
-import json
 
-import requests
+import aiohttp
 from openpilot.common.params import Params
 from openpilot.common.realtime import Ratekeeper
 from openpilot.common.swaglog import cloudlog
@@ -17,7 +17,7 @@ from openpilot.system.hardware.hw import Paths
 
 from cereal import messaging, custom
 from openpilot.sunnypilot.models.fetcher import ModelFetcher
-from openpilot.sunnypilot.models.helpers import get_active_bundle, validate_active_bundle, _verify_file
+from openpilot.sunnypilot.models.helpers import get_active_bundle, validate_active_bundle, verify_file
 
 
 class ModelManagerSP:
@@ -59,43 +59,42 @@ class ModelManagerSP:
 
     return max(1, int(eta))  # Return at least 1 second if download is ongoing
 
-  def _download_file(self, url: str, path: str, model) -> None:
-    """Downloads a file with progress tracking using requests"""
-    model.downloadProgress.status = custom.ModelManagerSP.DownloadStatus.downloading
-    self._report_status()
-
-    headers = {'User-Agent': 'SunnyPilot/1.0'}
+  async def _download_file(self, url: str, path: str, model) -> None:
+    """Downloads a file with progress tracking"""
     self._download_start_times[model.fileName] = time.monotonic()
 
-    with requests.get(url, stream=True, headers=headers, timeout=30) as response:
-      response.raise_for_status()
-      total_size = int(response.headers.get("content-length", 0))
-      bytes_downloaded = 0
+    headers = {'User-Agent': 'SunnyPilot/1.0'}
+    async with aiohttp.ClientSession(headers=headers) as session:
+      async with session.get(url) as response:
+        response.raise_for_status()
+        total_size = int(response.headers.get("content-length", 0))
+        bytes_downloaded = 0
 
-      with open(path, 'wb') as f:
-        for chunk in response.iter_content(chunk_size=self._chunk_size):
-          if not chunk:
-            continue
-          f.write(chunk)
-          bytes_downloaded += len(chunk)
+        with open(path, 'wb') as f:
+          async for chunk in response.content.iter_chunked(self._chunk_size):  # type: bytes
+            f.write(chunk)
+            bytes_downloaded += len(chunk)
 
-          if self.params.get_bool("ModelManager_CancelDownload"):
-            raise Exception("Download cancelled")
+            if self.params.get("ModelManager_DownloadIndex") is None and not self.params.get("ModelManager_DownloadRef"):
+              raise Exception("Download cancelled")
 
-          if total_size > 0:
-            progress = (bytes_downloaded / total_size) * 100
-            model.downloadProgress.status = custom.ModelManagerSP.DownloadStatus.downloading
-            model.downloadProgress.progress = progress
-            model.downloadProgress.eta = self._calculate_eta(model.fileName, progress)
-            self._sync_artifact_progress(model)
-            self._report_status()
+            if total_size > 0:
+              progress = (bytes_downloaded / total_size) * 100
+              model.downloadProgress.status = custom.ModelManagerSP.DownloadStatus.downloading
+              model.downloadProgress.progress = progress
+              model.downloadProgress.eta = self._calculate_eta(model.fileName, progress)
+              self._sync_artifact_progress(model)
+              self._report_status()
 
-      # Clean up start time after download completes
-      self._download_start_times.pop(model.fileName, None)
+        # Clean up start time after download completes
+        self._download_start_times.pop(model.fileName, None)
 
-  def _download_chunked(self, base_url: str, base_path: str, artifact) -> None:
+  async def _download_chunked(self, base_url: str, base_path: str, artifact) -> None:
     from openpilot.common.file_chunker import get_manifest_path, get_chunk_name
+    manifest_url = get_manifest_path(base_url)
     manifest_path = get_manifest_path(base_path)
+
+    headers = {'User-Agent': 'SunnyPilot/1.0'}
 
     num_chunks = None
     if os.path.exists(manifest_path):
@@ -105,57 +104,45 @@ class ModelManagerSP:
         pass
 
     if num_chunks is None:
-      manifest_url = get_manifest_path(base_url)
-      headers = {'User-Agent': 'SunnyPilot/1.0'}
-      resp = requests.get(manifest_url, headers=headers, timeout=15)
-      if resp.status_code == 404:
-        raise FileNotFoundError
-      resp.raise_for_status()
-      num_chunks = int(resp.text.strip())
+      async with aiohttp.ClientSession(headers=headers) as session:
+        async with session.get(manifest_url) as resp:
+          if resp.status == 404:
+            raise FileNotFoundError
+          resp.raise_for_status()
+          num_chunks = int((await resp.read()).strip())
 
     self._download_start_times[artifact.fileName] = time.monotonic()
 
     for i in range(num_chunks):
       chunk_url = get_chunk_name(base_url, i, num_chunks)
       chunk_path = get_chunk_name(base_path, i, num_chunks)
-      headers = {'User-Agent': 'SunnyPilot/1.0'}
-
-      try:
-        head_resp = requests.head(chunk_url, headers=headers, timeout=15, allow_redirects=True)
-        if head_resp.status_code == 200:
-          expected_size = int(head_resp.headers.get("content-length", 0))
-          if expected_size > 0 and os.path.exists(chunk_path) and os.path.getsize(chunk_path) == expected_size:
-            continue
-      except Exception:
-        pass
-
+      
       max_retries = 3
       for attempt in range(max_retries):
         chunk_downloaded = 0
         try:
-          with requests.get(chunk_url, stream=True, headers=headers, timeout=30) as response:
-            response.raise_for_status()
-            chunk_size = int(response.headers.get("content-length", 0))
-            with open(chunk_path, 'wb') as f:
-              for data in response.iter_content(chunk_size=self._chunk_size):
-                if not data:
-                  continue
-                f.write(data)
-                chunk_downloaded += len(data)
-                if self.params.get_bool("ModelManager_CancelDownload"):
-                  raise Exception("Download cancelled")
-                intra = chunk_downloaded / max(chunk_size, 1)
-                progress = min(99, (i + intra) / num_chunks * 100)
-                artifact.downloadProgress.status = custom.ModelManagerSP.DownloadStatus.downloading
-                artifact.downloadProgress.progress = progress
-                artifact.downloadProgress.eta = self._calculate_eta(artifact.fileName, progress)
-                self._sync_artifact_progress(artifact)
-                self._report_status()
+          async with aiohttp.ClientSession(headers=headers) as session:
+            async with session.get(chunk_url) as response:
+              response.raise_for_status()
+              chunk_size = int(response.headers.get("content-length", 0))
+              with open(chunk_path, 'wb') as f:
+                async for data in response.content.iter_chunked(self._chunk_size):
+                  f.write(data)
+                  chunk_downloaded += len(data)
+                  if self.params.get("ModelManager_DownloadIndex") is None and not self.params.get("ModelManager_DownloadRef"):
+                    raise Exception("Download cancelled")
+                  intra = chunk_downloaded / max(chunk_size, 1)
+                  progress = min(99, (i + intra) / num_chunks * 100)
+                  artifact.downloadProgress.status = custom.ModelManagerSP.DownloadStatus.downloading
+                  artifact.downloadProgress.progress = progress
+                  artifact.downloadProgress.eta = self._calculate_eta(artifact.fileName, progress)
+                  self._sync_artifact_progress(artifact)
+                  self._report_status()
           break
-        except (requests.RequestException, ConnectionError):
+        except (aiohttp.ClientError, aiohttp.ClientConnectionError):
           if attempt == max_retries - 1:
             raise
-          time.sleep(2)
+          await asyncio.sleep(2)
 
     with open(manifest_path, 'w') as f:
       f.write(str(num_chunks))
@@ -163,7 +150,7 @@ class ModelManagerSP:
       os.remove(base_path)
     self._download_start_times.pop(artifact.fileName, None)
 
-  def _process_artifact(self, artifact, destination_path: str) -> None:
+  async def _process_artifact(self, artifact, destination_path: str) -> None:
     if not artifact.downloadUri.uri:
       return None
 
@@ -173,7 +160,7 @@ class ModelManagerSP:
     full_path = os.path.join(destination_path, filename)
 
     try:
-      if _verify_file(full_path, expected_hash):
+      if await verify_file(full_path, expected_hash):
         artifact.downloadProgress.status = custom.ModelManagerSP.DownloadStatus.cached
         artifact.downloadProgress.progress = 100
         artifact.downloadProgress.eta = 0
@@ -182,7 +169,7 @@ class ModelManagerSP:
         return
 
       try:
-        self._download_chunked(url, full_path, artifact)
+        await self._download_chunked(url, full_path, artifact)
       except FileNotFoundError:
         from openpilot.common.file_chunker import get_manifest_path
         manifest_path = get_manifest_path(full_path)
@@ -191,9 +178,21 @@ class ModelManagerSP:
             os.remove(manifest_path)
           except OSError:
             pass
-        self._download_file(url, full_path, artifact)
+        await self._download_file(url, full_path, artifact)
+      except aiohttp.ClientResponseError as e:
+        if e.status == 404:
+          from openpilot.common.file_chunker import get_manifest_path
+          manifest_path = get_manifest_path(full_path)
+          if os.path.exists(manifest_path):
+            try:
+              os.remove(manifest_path)
+            except OSError:
+              pass
+          await self._download_file(url, full_path, artifact)
+        else:
+          raise
 
-      if not _verify_file(full_path, expected_hash):
+      if not await verify_file(full_path, expected_hash):
         raise ValueError(f"Hash validation failed for {filename}")
 
       artifact.downloadProgress.status = custom.ModelManagerSP.DownloadStatus.downloaded
@@ -215,15 +214,13 @@ class ModelManagerSP:
       self._download_start_times.pop(artifact.fileName, None)
       raise
 
-  def _process_model(self, model, destination_path: str) -> None:
+  async def _process_model(self, model, destination_path: str) -> None:
     """Processes a single model download including verification"""
     model_artifact = model.artifact
     metadata_artifact = model.metadata
 
-    if metadata_artifact.downloadUri.uri:
-      self._process_artifact(metadata_artifact, destination_path)
-    if model_artifact.downloadUri.uri:
-      self._process_artifact(model_artifact, destination_path)
+    await self._process_artifact(metadata_artifact, destination_path)
+    await self._process_artifact(model_artifact, destination_path)
 
   def _report_status(self) -> None:
     """Reports current status through messaging system"""
@@ -238,7 +235,7 @@ class ModelManagerSP:
     model_manager_state.availableBundles = self.available_models
     self.pm.send('modelManagerSP', msg)
 
-  def _download_bundle(self, model_bundle: custom.ModelManagerSP.ModelBundle, destination_path: str) -> None:
+  async def _download_bundle(self, model_bundle: custom.ModelManagerSP.ModelBundle, destination_path: str) -> None:
     """Downloads all models in a bundle"""
     self.selected_bundle = model_bundle
     self.selected_bundle.status = custom.ModelManagerSP.DownloadStatus.downloading
@@ -248,7 +245,7 @@ class ModelManagerSP:
       seen_artifacts: set[str] = set()
       for model in self.selected_bundle.models:
         for artifact in (model.metadata, model.artifact):
-          if not artifact.fileName or not artifact.downloadUri.uri:
+          if not artifact.fileName:
             continue
           if artifact.fileName in seen_artifacts:
             artifact.downloadProgress.status = custom.ModelManagerSP.DownloadStatus.cached
@@ -256,11 +253,11 @@ class ModelManagerSP:
             artifact.downloadProgress.eta = 0
           else:
             seen_artifacts.add(artifact.fileName)
-            self._process_artifact(artifact, destination_path)
+            await self._process_artifact(artifact, destination_path)
 
       self.active_bundle = self.selected_bundle
       self.active_bundle.status = custom.ModelManagerSP.DownloadStatus.downloaded
-      self.params.put("ModelManager_ActiveBundle", json.dumps(self.active_bundle.to_dict()), block=True)
+      self.params.put("ModelManager_ActiveBundle", self.active_bundle.to_dict(), block=True)
       self.selected_bundle = None
 
     except Exception:
@@ -272,7 +269,7 @@ class ModelManagerSP:
 
   def download(self, model_bundle: custom.ModelManagerSP.ModelBundle, destination_path: str) -> None:
     """Main entry point for downloading a model bundle"""
-    self._download_bundle(model_bundle, destination_path)
+    asyncio.run(self._download_bundle(model_bundle, destination_path))
 
   def main_thread(self) -> None:
     """Main thread for model management"""
@@ -284,33 +281,15 @@ class ModelManagerSP:
         validate_active_bundle(self.params, self.available_models)
         self.active_bundle = get_active_bundle(self.params)
 
-        download_idx = self.params.get("ModelManager_DownloadIndex")
-        download_ref = self.params.get("ModelManager_DownloadRef")
-        if download_idx is not None or download_ref is not None:
-          self.params.remove("ModelManager_CancelDownload")
-          model_to_download = None
-          if download_ref:
-            ref_str = download_ref.decode('utf-8') if isinstance(download_ref, bytes) else str(download_ref)
-            model_to_download = next((model for model in self.available_models if str(model.ref) == ref_str), None)
-          if not model_to_download and download_idx is not None:
-            try:
-              idx_val = download_idx.decode('utf-8') if isinstance(download_idx, bytes) else str(download_idx)
-              idx_int = int(idx_val)
-              model_to_download = next((model for model in self.available_models if int(model.index) == idx_int), None)
-            except (ValueError, TypeError) as e:
-              cloudlog.warning(f"Invalid ModelManager_DownloadIndex: {download_idx} ({e})")
-
-          if model_to_download:
+        if (index_to_download := self.params.get("ModelManager_DownloadIndex")) is not None:
+          if model_to_download := next((model for model in self.available_models if model.index == index_to_download), None):
             try:
               self.download(model_to_download, Paths.model_root())
             except Exception as e:
               cloudlog.exception(e)
-          else:
-            cloudlog.warning(f"Could not find model to download for index={download_idx}, ref={download_ref}")
-
-          self.params.remove("ModelManager_DownloadIndex")
-          self.params.remove("ModelManager_DownloadRef")
-          self.selected_bundle = None
+            finally:
+              self.params.remove("ModelManager_DownloadIndex")
+              self.selected_bundle = None
 
         if self.params.get("ModelManager_ClearCache"):
           self.clear_model_cache()
