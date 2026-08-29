@@ -10,7 +10,7 @@ import numpy as np
 import SCons.Errors
 from SCons.Defaults import _stripixes
 
-TICI = os.path.isfile('/TICI')
+TICI = os.path.isfile('/TICI') or os.path.isfile('/MICI') or os.path.isfile('/TIZI')
 
 SCons.Warnings.warningAsException(True)
 
@@ -220,7 +220,7 @@ def prune_cache_dir(target=None, source=None, env=None):
 SConscript(['common/SConscript'])
 # BluePilot: import glibcxx_compat node
 Import('_common', 'glibcxx_compat')
-common = [_common, 'json11', 'zmq', glibcxx_compat, 'stdc++fs']
+common = [_common, 'json11', 'zmq', glibcxx_compat]
 # End BluePilot
 Export('common')
 
@@ -268,7 +268,7 @@ if GetOption('extras') and arch != "larch64":
   SConscript([
     'tools/replay/SConscript',
     'tools/cabana/SConscript',
-    'tools/jotpluggler/SConscript',
+    # 'tools/jotpluggler/SConscript',
   ])
 
 
