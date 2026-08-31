@@ -219,8 +219,8 @@ def prune_cache_dir(target=None, source=None, env=None):
 # Build common module
 SConscript(['common/SConscript'])
 # BluePilot: import glibcxx_compat node
-Import('_common')
-common = [_common, 'json11', 'zmq']
+Import('_common', 'compat_lib')
+common = [_common, 'json11', 'zmq', compat_lib]
 # End BluePilot
 Export('common')
 

@@ -30,6 +30,19 @@ FINALIZED = os.path.join(STAGING_ROOT, "finalized")
 
 OVERLAY_INIT = Path(os.path.join(BASEDIR, ".overlay_init"))
 
+# BluePilot: persistent updater log for post-crash diagnostics
+UPDATER_LOG_FILE = os.path.join(BASEDIR, "updater.log")
+
+def _log_to_file(msg: str) -> None:
+  """Append a timestamped line to the persistent updater log."""
+  try:
+    ts = datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat()
+    with open(UPDATER_LOG_FILE, "a") as f:
+      f.write(f"[{ts}] {msg}\n")
+  except Exception:
+    pass  # never let logging break the updater
+# End BluePilot
+
 # do not allow to engage after this many hours onroad and this many routes
 HOURS_NO_CONNECTIVITY_MAX = 27
 ROUTES_NO_CONNECTIVITY_MAX = 84
@@ -373,8 +386,13 @@ class Updater:
     run(["git", "config", "--replace-all", "remote.origin.fetch", "+refs/heads/*:refs/remotes/origin/*"], OVERLAY_MERGED)
 
     branch = self.target_branch
-    git_fetch_output = run(["git", "fetch", "origin", branch], OVERLAY_MERGED)
+    # BluePilot: --no-recurse-submodules prevents fatal errors from outdated/removed
+    # upstream submodule references (AGENTS.md Submodule Fetch Guard)
+    _log_to_file(f"fetch_update: fetching branch={branch}")
+    git_fetch_output = run(["git", "fetch", "--no-recurse-submodules", "origin", branch], OVERLAY_MERGED)
     cloudlog.info("git fetch success: %s", git_fetch_output)
+    _log_to_file(f"fetch_update: git fetch success")
+    # End BluePilot
 
     cloudlog.info("git reset in progress")
     cmds = [
@@ -387,15 +405,26 @@ class Updater:
         ["git", "clean", "-xdff"],
       ])
 
-    cmds.extend([
+    r = [run(cmd, OVERLAY_MERGED) for cmd in cmds]
+
+    # BluePilot: wrap submodule operations in try/except so network or auth errors
+    # don't crash the entire update cycle — log and continue with best-effort.
+    submodule_cmds = [
       ["git", "submodule", "sync"],
       ["git", "submodule", "update", "--init", "--recursive"],
-    ])
-
+    ]
     if HARDWARE.get_device_type() != "mici":
-      cmds.append(["git", "submodule", "foreach", "--recursive", "git", "reset", "--hard"])
+      submodule_cmds.append(["git", "submodule", "foreach", "--recursive", "git", "reset", "--hard"])
 
-    r = [run(cmd, OVERLAY_MERGED) for cmd in cmds]
+    for cmd in submodule_cmds:
+      try:
+        r.append(run(cmd, OVERLAY_MERGED))
+      except subprocess.CalledProcessError as e:
+        error_msg = f"Submodule operation failed (non-fatal): {' '.join(e.cmd)}\n{e.output}"
+        cloudlog.warning(error_msg)
+        _log_to_file(f"fetch_update: {error_msg}")
+        r.append(f"WARN: {error_msg}")
+    # End BluePilot
 
     # Try setting upstream, but don't fail if the remote branch isn't set up yet
     try:
@@ -498,10 +527,16 @@ def main() -> None:
           returncode=e.returncode
         )
         exception = f"command failed: {e.cmd}\n{e.output}"
+        # BluePilot: persist to file log for post-crash diagnostics
+        _log_to_file(f"update process failed: {exception}")
+        # End BluePilot
         OVERLAY_INIT.unlink(missing_ok=True)
       except Exception as e:
         cloudlog.exception("uncaught updated exception, shouldn't happen")
         exception = str(e)
+        # BluePilot: persist to file log for post-crash diagnostics
+        _log_to_file(f"uncaught updated exception: {exception}")
+        # End BluePilot
         OVERLAY_INIT.unlink(missing_ok=True)
 
       try:

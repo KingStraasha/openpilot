@@ -5,19 +5,19 @@ common_libs = [
   'swaglog.cc',
   'util.cc',
   'ratekeeper.cc',
-  'glibcxx_compat.cc',
 ]
 
 _common = env.Library('common', common_libs, LIBS="json11")
-Export('_common')
+compat_lib = env.Library('glibcxx_compat', ['glibcxx_compat.cc'])
+Export('_common', 'compat_lib')
 
 if GetOption('extras'):
   env.Program('tests/test_common',
               ['tests/test_runner.cc', 'tests/test_params.cc', 'tests/test_util.cc', 'tests/test_swaglog.cc'],
-              LIBS=[_common, 'json11', 'zmq', 'pthread'])
+              LIBS=[_common, 'json11', 'zmq', compat_lib, 'pthread'])
 
 # Cython bindings
-params_python = envCython.Program('params_pyx.so', 'params_pyx.pyx', LIBS=envCython['LIBS'] + [_common, 'json11', 'zmq'])
+params_python = envCython.Program('params_pyx.so', 'params_pyx.pyx', LIBS=envCython['LIBS'] + [_common, 'json11', 'zmq', compat_lib])
 
 common_python = [params_python]
 

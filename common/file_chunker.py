@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import io
 import sys
 import math
 import os
@@ -47,6 +48,48 @@ def read_file_chunked(path):
   if os.path.isfile(path):
     return Path(path).read_bytes()
   raise FileNotFoundError(path)
+
+class _ChunkedFile(io.RawIOBase):
+  """Read-only file-like view that transparently assembles chunk files."""
+
+  def __init__(self, chunk_blobs: list[bytes]):
+    super().__init__()
+    self._chunks = chunk_blobs
+    self._idx = 0
+    self._offset = 0
+
+  def readable(self):
+    return True
+
+  def readinto(self, b):
+    if self._idx >= len(self._chunks):
+      return 0
+    chunk = self._chunks[self._idx]
+    remaining = len(chunk) - self._offset
+    n = min(len(b), remaining)
+    b[:n] = chunk[self._offset:self._offset + n]
+    self._offset += n
+    if self._offset >= len(chunk):
+      self._idx += 1
+      self._offset = 0
+    return n
+
+
+def open_file_chunked(path):
+  """Open a file that may be stored as chunks, returning a buffered file-like object.
+
+  If a chunk manifest exists for *path*, the chunks are assembled into a
+  single contiguous read stream.  Otherwise the plain file is opened directly.
+  """
+  manifest_path = get_manifest_path(path)
+  if os.path.isfile(manifest_path):
+    num_chunks = int(Path(manifest_path).read_text().strip())
+    chunks = [Path(get_chunk_name(path, i, num_chunks)).read_bytes() for i in range(num_chunks)]
+    return io.BufferedReader(_ChunkedFile(chunks))
+  if os.path.isfile(path):
+    return open(path, 'rb')
+  raise FileNotFoundError(path)
+
 
 
 if __name__ == "__main__":
