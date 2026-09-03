@@ -14,9 +14,26 @@
 |---|---|
 | Base branch | `origin/bp-7.0` |
 | Base commit | `e1d051d7ba` — "Merge pull request #184 from BluePilotDev/bp-dev" |
-| Rebuild commit | `9cfc9c4aad` — "feat(models): port post-April 2026 SunnyPilot manifests and harden updater" |
+| Rebuild commit | `ae9dd67703` — "fix(models): register params keys, restore capnp metadata field, and fix mici fallback" |
+| Preceding commit | `9cfc9c4aad` — "feat(models): port post-April 2026 SunnyPilot manifests and harden updater" |
 | Tinygrad pin | `ac1632ab966c77ba96a7048b893a30f1a714dc87` (clean origin/bp-7.0 pin) |
 | AGNOS | 18.5 (dynamic fallback in launch_env.sh — not hardcoded) |
+
+---
+
+## P0 Audit Remediations Applied (Commit ae9dd67703)
+
+1. **`common/params_keys.h`**: Registered three missing parameters:
+   - `{"ModelManager_ActiveJson", {CLEAR_ON_MANAGER_START, JSON}}`
+   - `{"ModelManager_LastSyncTime_Chestnut", {CLEAR_ON_MANAGER_START | CLEAR_ON_OFFROAD_TRANSITION, INT, "0"}}`
+   - `{"ModelManager_ModelsCache_Chestnut", {PERSISTENT | BACKUP, JSON}}`
+   Prevents fatal `openpilot.common.params_pyx.UnknownKeyName` daemon crash on startup.
+
+2. **`cereal/custom.capnp`**: Restored `metadata @2 :Artifact;` on `struct Model`.
+   Maintains Cap'n Proto wire protocol backward/forward compatibility and prevents `AttributeError` in `model_runner.py`.
+
+3. **`selfdrive/ui/sunnypilot/mici/layouts/models.py`**:
+   Updated fallback to call `get_bundles_for_source("qcom")` (replacing obsolete `get_available_bundles()`).
 
 ---
 
@@ -38,7 +55,7 @@ C++ ABI and build system:
 
 ---
 
-## Files Modified (20 files, all Python/schema/data)
+## Files Modified (21 files, all Python/schema/data)
 
 ### Model Subsystem — `sunnypilot/models/`
 | File | Change |
@@ -55,8 +72,8 @@ C++ ABI and build system:
 ### Schema
 | File | Change |
 |---|---|
-| `cereal/custom.capnp` | Added `ModelManagerSP.Chunk {fileName, sha256}`, `Artifact.chunks @3 :List(Chunk)`, removed unused `Model.metadata` |
-| `common/params_keys.h` | Added `ModelManager_ActiveBundleChestnut`, `ModelManager_DownloadRef`, `ModelManager_CancelDownload`, `ModelRunnerTypeCache` |
+| `cereal/custom.capnp` | Added `ModelManagerSP.Chunk {fileName, sha256}`, `Artifact.chunks @3 :List(Chunk)`, restored `Model.metadata @2` |
+| `common/params_keys.h` | Added `ModelManager_ActiveBundleChestnut`, `ModelManager_ActiveJson`, `ModelManager_DownloadRef`, `ModelManager_CancelDownload`, `ModelManager_LastSyncTime_Chestnut`, `ModelManager_ModelsCache_Chestnut`, `ModelRunnerTypeCache` |
 
 ### Infrastructure
 | File | Change |
