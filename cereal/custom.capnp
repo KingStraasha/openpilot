@@ -137,16 +137,21 @@ struct ModelManagerSP @0xaedffd8f31e7b55d {
     eta @2 :UInt32;
   }
 
+  struct Chunk {
+    fileName @0 :Text;
+    sha256 @1 :Text;
+  }
+
   struct Artifact {
     fileName @0 :Text;
     downloadUri @1 :DownloadUri;
     downloadProgress @2 :DownloadProgress;
+    chunks @3 :List(Chunk);
   }
 
   struct Model {
     type @0 :Type;
     artifact @1 :Artifact;  # Main artifact
-    metadata @2 :Artifact;  # Metadata artifact
 
     enum Type {
       supercombo @0;

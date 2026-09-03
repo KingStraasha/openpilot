@@ -193,11 +193,15 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
 
     // Model Manager params
     {"ModelManager_ActiveBundle", {PERSISTENT, JSON}},
+    {"ModelManager_ActiveBundleChestnut", {PERSISTENT, JSON}},
+    {"ModelManager_CancelDownload", {CLEAR_ON_MANAGER_START, BOOL}},
     {"ModelManager_ClearCache", {CLEAR_ON_MANAGER_START, BOOL}},
     {"ModelManager_DownloadIndex", {CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION, INT}},
+    {"ModelManager_DownloadRef", {CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION, STRING}},
     {"ModelManager_Favs", {PERSISTENT | BACKUP, STRING}},
     {"ModelManager_LastSyncTime", {CLEAR_ON_MANAGER_START | CLEAR_ON_OFFROAD_TRANSITION, INT, "0"}},
     {"ModelManager_ModelsCache", {PERSISTENT | BACKUP, JSON}},
+    {"ModelRunnerTypeCache", {CLEAR_ON_ONROAD_TRANSITION, INT}},
 
     // Neural Network Lateral Control
     {"NeuralNetworkLateralControl", {PERSISTENT | BACKUP, BOOL, "0"}},
@@ -335,7 +339,6 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"BPHideOnroadBorder", {PERSISTENT | BACKUP, BOOL, "0"}},
     {"BPHideCameraView", {PERSISTENT | BACKUP, BOOL, "0"}},
     {"BPRadRacerTheme", {PERSISTENT | BACKUP, BOOL, "0"}},
-    {"BPThemePack", {PERSISTENT | BACKUP, STRING, ""}},
     {"BPThemeAutoSeasonal", {PERSISTENT | BACKUP, BOOL, "0"}},
     {"BPRainbowLines", {PERSISTENT | BACKUP, BOOL, "0"}},
     {"BPShowConfidenceBall", {PERSISTENT | BACKUP, BOOL, "1"}},
