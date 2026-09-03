@@ -81,7 +81,7 @@ class ModelsLayoutMici(NavScroller):
     if not bundles:
       try:
         from openpilot.sunnypilot.models.fetcher import ModelFetcher
-        bundles = ModelFetcher(ui_state.params).get_available_bundles()
+        bundles = ModelFetcher(ui_state.params).get_bundles_for_source("qcom")
       except Exception:
         bundles = []
 
