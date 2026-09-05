@@ -148,7 +148,9 @@ class ModelManagerSP:
         chunk_url = get_chunk_name(base_url, i, num_chunks)
         chunk_path = get_chunk_name(base_path, i, num_chunks)
         chunk_downloaded = 0
-        cloudlog.info(f"Downloading chunk {i+1}/{num_chunks} from {chunk_url}")
+        chunk_msg = f"Downloading chunk {i+1}/{num_chunks} from {chunk_url}"
+        print(chunk_msg, flush=True)
+        cloudlog.warning(chunk_msg)
         with session.get(chunk_url, stream=True, timeout=DOWNLOAD_TIMEOUT, allow_redirects=True) as response:
           response.raise_for_status()
           chunk_size = int(response.headers.get("content-length", 0))
@@ -345,15 +347,25 @@ class ModelManagerSP:
         break
 
       model_to_download, source = resolved
-      cloudlog.info(f"Processing model download request: {model_to_download.displayName} (ref={model_to_download.ref}, source={source})")
+      req_msg = f"Processing model download request: {model_to_download.displayName} (ref={model_to_download.ref}, source={source})"
+      print(req_msg, flush=True)
+      cloudlog.warning(req_msg)
       self._download_ref = raw_ref or str(model_to_download.ref)
       try:
         self.download(model_to_download, Paths.model_root(), source)
-        cloudlog.info(f"Model download completed successfully: {model_to_download.displayName}")
+        comp_msg = f"Model download completed successfully: {model_to_download.displayName}"
+        print(comp_msg, flush=True)
+        cloudlog.warning(comp_msg)
       except Exception as e:
-        cloudlog.exception(f"Error during model download: {e}")
+        err_msg = f"Error during model download: {e}"
+        print(err_msg, flush=True)
+        cloudlog.exception(err_msg)
       finally:
         self._release_download_ref()
+        cur_idx = self.params.get("ModelManager_DownloadIndex")
+        cur_idx_int = int(cur_idx) if cur_idx is not None else None
+        if cur_idx_int == getattr(model_to_download, "index", None) or self.params.get("ModelManager_DownloadRef") is None:
+          self.params.remove("ModelManager_DownloadIndex")
         self.selected_bundle = None
 
   def main_thread(self) -> None:

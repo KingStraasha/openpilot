@@ -62,6 +62,10 @@
    - When checking cached chunks before starting download, setting `.verifying` triggered an immediate `AttributeError`, causing `_process_artifact` to delete all chunks, mark the download as `failed`, and abort.
    - Replaced with `custom.ModelManagerSP.DownloadStatus.downloading`.
 
+10. **`sunnypilot/models/manager.py` (Download Loop & Tmux Output)**:
+    - Fixed infinite re-download loop: `_process_download_requests()` previously cleared `ModelManager_DownloadRef` in `_release_download_ref()` but left `ModelManager_DownloadIndex` untouched. On every subsequent 1Hz tick of `main_thread()`, `raw_idx` was still set, re-triggering download of the same model indefinitely. Now cleans up `ModelManager_DownloadIndex` in `finally:` when the active request index finishes.
+    - Added direct stdout `print(..., flush=True)` and `cloudlog.warning` across the download lifecycle so chunk progress (`Downloading chunk X/Y...`) displays directly in `tmux capture-pane -pt comma -S -100` even when default `LOGPRINT` is `warning`.
+
 ---
 
 ## What Was Done (vs. bp70)
