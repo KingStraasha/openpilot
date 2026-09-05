@@ -190,7 +190,7 @@ python3 -c "
 from openpilot.sunnypilot.models.fetcher import ModelFetcher
 from openpilot.common.params import Params
 f = ModelFetcher(Params())
-bundles = f.get_model_list('qcom')
+bundles = f.get_bundles_for_source('qcom')
 print(f'qcom bundles: {len(bundles)}')
 "
 
