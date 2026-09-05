@@ -47,6 +47,15 @@
 7. **`cereal/custom.capnp` & `fetcher.py` (`chunked` Model Type)**:
    Added `chunked @6;` to `ModelManagerSP.Model.Type` in `custom.capnp` and added fallback handling in `fetcher.py` (`_parse_model`) and `helpers.py` (`_get_model`). Prevents `AttributeError: enum has no such enumerant; name = chunked` when downloading v21/v22 model manifests.
 
+8. **Model Download & Resolution Pipeline Hardening (`helpers.py`, `manager.py`, `settings/models.py`)**:
+   - Resolved bytes vs string type mismatch and whitespace normalization in `resolve_bundle_by_ref`.
+   - Added `resolve_bundle_by_index` fallback in `helpers.py` so downloads succeed whether initiated by bundle `ref` or `index`.
+   - Prevented daemon permanent lock-up on unresolvable requests by clearing params and breaking rather than spinning forever.
+   - Hardened `_release_download_ref` to cleanly clear both `ModelManager_DownloadRef` and `ModelManager_DownloadIndex`.
+   - Added standard browser User-Agent and headers with explicit `allow_redirects=True` to reliably stream HuggingFace 302 -> AWS CDN chunks.
+   - Fixed `settings/models.py` to write `ModelManager_DownloadRef` alongside `ModelManager_DownloadIndex` upon model selection.
+   - Added informative cloudlog messages for every download request, chunk download progress, and completion.
+
 ---
 
 ## What Was Done (vs. bp70)
