@@ -37,7 +37,7 @@ def _compute_hash(file_path: str) -> str | None:
   try:
     with open_file_chunked(file_path) as file:
       return hashlib.file_digest(file, "sha256").hexdigest().lower()
-  except FileNotFoundError:
+  except (FileNotFoundError, OSError, ValueError):
     return None
 
 
@@ -57,7 +57,13 @@ def is_bundle_version_compatible(bundle: dict) -> bool:
   required to load the model. This function ensures that:
     the bundle MUST match the `REQUIRED_JSON_VERSION` set here in helpers.
   """
-  return bundle.get("minimumSelectorVersion", 0) == REQUIRED_JSON_VERSION
+  ver = bundle.get("minimumSelectorVersion")
+  if ver is None:
+    ver = bundle.get("minimum_selector_version", 0)
+  try:
+    return int(ver) == REQUIRED_JSON_VERSION
+  except (ValueError, TypeError):
+    return False
 
 
 def _bundle_artifacts(bundle: custom.ModelManagerSP.ModelBundle) -> list[tuple[str, str]]:
@@ -143,11 +149,36 @@ def get_active_bundle(params: Params | None = None, *, chestnut: bool | None = N
 
 
 def resolve_bundle_by_ref(
-  ref: str, source_bundles: dict[str, list[custom.ModelManagerSP.ModelBundle]],
+  ref: str | bytes, source_bundles: dict[str, list[custom.ModelManagerSP.ModelBundle]],
 ) -> "tuple[custom.ModelManagerSP.ModelBundle, str] | None":
+  if isinstance(ref, bytes):
+    try:
+      ref = ref.decode("utf-8", errors="ignore")
+    except Exception:
+      ref = str(ref)
+  ref_str = str(ref).strip() if ref is not None else ""
+  if not ref_str:
+    return None
   for source, bundles in source_bundles.items():
     for bundle in bundles:
-      if bundle.ref == ref:
+      bundle_ref = str(bundle.ref).strip() if bundle.ref else ""
+      if bundle_ref == ref_str:
+        return bundle, source
+  return None
+
+
+def resolve_bundle_by_index(
+  index: int | str | bytes, source_bundles: dict[str, list[custom.ModelManagerSP.ModelBundle]],
+) -> "tuple[custom.ModelManagerSP.ModelBundle, str] | None":
+  try:
+    if isinstance(index, bytes):
+      index = index.decode("utf-8", errors="ignore")
+    idx = int(str(index).strip())
+  except (ValueError, TypeError):
+    return None
+  for source, bundles in source_bundles.items():
+    for bundle in bundles:
+      if bundle.index == idx:
         return bundle, source
   return None
 

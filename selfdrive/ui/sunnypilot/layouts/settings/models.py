@@ -193,7 +193,10 @@ class ModelsLayout(Widget):
       ui_state.params.remove("ModelManager_ActiveBundle")
       self._show_reset_params_dialog()
     elif selected_bundle := next((bundle for bundle in self.model_manager.availableBundles if bundle.ref == selected_ref), None):
+      ui_state.params.remove("ModelManager_CancelDownload")
       ui_state.params.put("ModelManager_DownloadIndex", selected_bundle.index)
+      if selected_bundle.ref:
+        ui_state.params.put("ModelManager_DownloadRef", str(selected_bundle.ref))
       if self.model_manager.activeBundle and selected_bundle.generation != self.model_manager.activeBundle.generation:
         self._show_reset_params_dialog()
     self.model_dialog = None

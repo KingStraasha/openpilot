@@ -19,7 +19,8 @@ from cereal import messaging, custom
 from openpilot.selfdrive.modeld.helpers import usbgpu_present as chestnut_present
 from openpilot.sunnypilot.models.fetcher import ModelFetcher
 from openpilot.sunnypilot.models.helpers import (ACTIVE_BUNDLE_KEYS, get_active_bundle, get_selected_bundle,
-                                                  resolve_bundle_by_ref, validate_active_bundles, verify_file)
+                                                  resolve_bundle_by_ref, resolve_bundle_by_index,
+                                                  validate_active_bundles, verify_file)
 
 # (connect, read) seconds. read is per-request inactivity, not a total cap
 DOWNLOAD_TIMEOUT = (30, 30)
@@ -49,10 +50,18 @@ class ModelManagerSP:
   def _download_interrupted(self) -> bool:
     # only removal cancels: a different ref is a queued selection that
     # _release_download_ref leaves in place for the next tick
-    return self.params.get("ModelManager_DownloadRef") is None
+    if self.params.get_bool("ModelManager_CancelDownload"):
+      return True
+    return self.params.get("ModelManager_DownloadRef") is None and self.params.get("ModelManager_DownloadIndex") is None
 
   def _release_download_ref(self) -> None:
-    if self.params.get("ModelManager_DownloadRef") == self._download_ref:
+    cur = self.params.get("ModelManager_DownloadRef")
+    cur_str = cur.decode("utf-8", errors="ignore").strip() if isinstance(cur, bytes) else (
+      str(cur).strip() if cur is not None else None)
+    ref = self._download_ref
+    ref_str = ref.decode("utf-8", errors="ignore").strip() if isinstance(ref, bytes) else (
+      str(ref).strip() if ref is not None else None)
+    if cur == self._download_ref or (cur_str is not None and cur_str == ref_str) or not cur_str:
       self.params.remove("ModelManager_DownloadRef")
     self._download_ref = None
 
@@ -86,7 +95,11 @@ class ModelManagerSP:
     """Downloads a file with progress tracking"""
     self._download_start_times[model.fileName] = time.monotonic()
 
-    with requests.get(url, stream=True, timeout=DOWNLOAD_TIMEOUT) as response:  # noqa: ASYNC210
+    headers = {
+      "User-Agent": "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36",
+      "Accept": "*/*",
+    }
+    with requests.get(url, stream=True, timeout=DOWNLOAD_TIMEOUT, headers=headers, allow_redirects=True) as response:  # noqa: ASYNC210
       response.raise_for_status()
       total_size = int(response.headers.get("content-length", 0))
       bytes_downloaded = 0
@@ -123,14 +136,20 @@ class ModelManagerSP:
     # Shared connection saves a TCP+TLS handshake per chunk.
     # Keep sequential: the link saturates on one stream and Session is not thread-safe.
     completed = len(skip)
+    headers = {
+      "User-Agent": "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36",
+      "Accept": "*/*",
+    }
     with requests.Session() as session:
+      session.headers.update(headers)
       for i, _ in enumerate(artifact.chunks):
         if i in skip:
           continue
         chunk_url = get_chunk_name(base_url, i, num_chunks)
         chunk_path = get_chunk_name(base_path, i, num_chunks)
         chunk_downloaded = 0
-        with session.get(chunk_url, stream=True, timeout=DOWNLOAD_TIMEOUT) as response:
+        cloudlog.info(f"Downloading chunk {i+1}/{num_chunks} from {chunk_url}")
+        with session.get(chunk_url, stream=True, timeout=DOWNLOAD_TIMEOUT, allow_redirects=True) as response:
           response.raise_for_status()
           chunk_size = int(response.headers.get("content-length", 0))
           with open(chunk_path, 'wb') as f:  # noqa: ASYNC230
@@ -298,20 +317,41 @@ class ModelManagerSP:
   def _process_download_requests(self) -> None:
     # loops so a ref queued during a download starts in the same tick, without
     # the bar dropping to idle for a tick between the two transfers
-    last_ref = None
-    while (ref_to_download := self.params.get("ModelManager_DownloadRef")) is not None:
-      if ref_to_download == last_ref:  # a repeating ref falls back to the next tick instead of spinning
-        return
-      last_ref = ref_to_download
-      resolved = resolve_bundle_by_ref(ref_to_download, self.source_models)
+    last_req = None
+    while True:
+      raw_ref = self.params.get("ModelManager_DownloadRef")
+      raw_idx = self.params.get("ModelManager_DownloadIndex")
+
+      if raw_ref is None and raw_idx is None:
+        break
+
+      ref_str = raw_ref.decode("utf-8", errors="ignore").strip() if isinstance(raw_ref, bytes) else (str(raw_ref).strip() if raw_ref else "")
+
+      req_key = (ref_str, str(raw_idx))
+      if req_key == last_req:
+        break
+      last_req = req_key
+
+      resolved = None
+      if ref_str:
+        resolved = resolve_bundle_by_ref(ref_str, self.source_models)
+      if not resolved and raw_idx is not None:
+        resolved = resolve_bundle_by_index(raw_idx, self.source_models)
+
       if not resolved:
-        return
+        cloudlog.warning(f"Unable to resolve model download request: ref={raw_ref!r}, index={raw_idx!r}")
+        self.params.remove("ModelManager_DownloadRef")
+        self.params.remove("ModelManager_DownloadIndex")
+        break
+
       model_to_download, source = resolved
-      self._download_ref = ref_to_download
+      cloudlog.info(f"Processing model download request: {model_to_download.displayName} (ref={model_to_download.ref}, source={source})")
+      self._download_ref = raw_ref or str(model_to_download.ref)
       try:
         self.download(model_to_download, Paths.model_root(), source)
+        cloudlog.info(f"Model download completed successfully: {model_to_download.displayName}")
       except Exception as e:
-        cloudlog.exception(e)
+        cloudlog.exception(f"Error during model download: {e}")
       finally:
         self._release_download_ref()
         self.selected_bundle = None
