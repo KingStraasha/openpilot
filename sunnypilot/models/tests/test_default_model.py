@@ -8,7 +8,11 @@ See the LICENSE.md file in the root directory for more details.
 from openpilot.sunnypilot import get_file_hash
 from openpilot.sunnypilot.models.default_model import MODEL_HASH_PATH, SUPERCOMBO_ONNX_PATH
 import hashlib
-from openpilot.common.test import OpenpilotTestCase
+try:
+  from openpilot.common.test import OpenpilotTestCase
+except ImportError:
+  import unittest
+  OpenpilotTestCase = unittest.TestCase  # type: ignore[misc,assignment]
 
 
 class TestDefaultModel(OpenpilotTestCase):

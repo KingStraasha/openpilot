@@ -99,12 +99,12 @@ class ModelManagerSP:
       "User-Agent": "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36",
       "Accept": "*/*",
     }
-    with requests.get(url, stream=True, timeout=DOWNLOAD_TIMEOUT, headers=headers, allow_redirects=True) as response:  # noqa: ASYNC210
+    with requests.get(url, stream=True, timeout=DOWNLOAD_TIMEOUT, headers=headers, allow_redirects=True) as response:
       response.raise_for_status()
       total_size = int(response.headers.get("content-length", 0))
       bytes_downloaded = 0
 
-      with open(path, 'wb') as f:  # noqa: ASYNC230
+      with open(path, 'wb') as f:
         for chunk in response.iter_content(chunk_size=self._chunk_size):  # type: bytes
           f.write(chunk)
           bytes_downloaded += len(chunk)
@@ -152,7 +152,7 @@ class ModelManagerSP:
         with session.get(chunk_url, stream=True, timeout=DOWNLOAD_TIMEOUT, allow_redirects=True) as response:
           response.raise_for_status()
           chunk_size = int(response.headers.get("content-length", 0))
-          with open(chunk_path, 'wb') as f:  # noqa: ASYNC230
+          with open(chunk_path, 'wb') as f:
             for data in response.iter_content(chunk_size=self._chunk_size):
               f.write(data)
               chunk_downloaded += len(data)
@@ -167,9 +167,9 @@ class ModelManagerSP:
               self._report_status()
         completed += 1
 
-    with open(manifest_path, 'w') as f:  # noqa: ASYNC230
+    with open(manifest_path, 'w') as f:
       f.write(str(num_chunks))
-    if os.path.isfile(base_path):  # noqa: ASYNC240
+    if os.path.isfile(base_path):
       os.remove(base_path)
     del self._download_start_times[artifact.fileName]
 
@@ -197,7 +197,7 @@ class ModelManagerSP:
             raise DownloadCancelled("Download cancelled")
           if await verify_file(get_chunk_name(full_path, i, num_chunks), chunk.sha256):
             valid_chunks.add(i)
-          artifact.downloadProgress.status = custom.ModelManagerSP.DownloadStatus.verifying
+          artifact.downloadProgress.status = custom.ModelManagerSP.DownloadStatus.downloading
           artifact.downloadProgress.progress = (len(valid_chunks) / num_chunks) * 100
           self._sync_artifact_progress(artifact)
           self._report_status()
@@ -246,7 +246,7 @@ class ModelManagerSP:
     except Exception as e:
       cloudlog.error(f"Error downloading {filename}: {str(e)}")
       for f in [full_path] + [p for p in (os.path.join(destination_path, f) for f in os.listdir(destination_path)) if filename in p]:
-        if os.path.isfile(f):  # noqa: ASYNC240
+        if os.path.isfile(f):
           os.remove(f)
       artifact.downloadProgress.status = custom.ModelManagerSP.DownloadStatus.failed
       artifact.downloadProgress.eta = 0

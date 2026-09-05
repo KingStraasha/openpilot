@@ -56,6 +56,12 @@
    - Fixed `settings/models.py` to write `ModelManager_DownloadRef` alongside `ModelManager_DownloadIndex` upon model selection.
    - Added informative cloudlog messages for every download request, chunk download progress, and completion.
 
+9. **`sunnypilot/models/manager.py` (`DownloadStatus.verifying` AttributeError)**:
+   - Fixed `AttributeError: '_EnumModule' object has no attribute 'verifying'` at line 200 of `manager.py`.
+   - `custom.ModelManagerSP.DownloadStatus` defines `notDownloading`, `downloading`, `downloaded`, `cached`, `failed`. `verifying` does not exist in Cap'n Proto.
+   - When checking cached chunks before starting download, setting `.verifying` triggered an immediate `AttributeError`, causing `_process_artifact` to delete all chunks, mark the download as `failed`, and abort.
+   - Replaced with `custom.ModelManagerSP.DownloadStatus.downloading`.
+
 ---
 
 ## What Was Done (vs. bp70)
