@@ -175,7 +175,10 @@ class BigMultiParamToggleStrBP(BigMultiParamToggleBP):
     super().__init__(text, param, options, **kwargs)
 
   def _load_value(self):
-    stored = self._params.get(self._param) or ""
+    try:
+      stored = self._params.get(self._param) or ""
+    except Exception:
+      stored = ""
     if isinstance(stored, bytes):
       stored = stored.decode("utf-8", errors="replace")
     # Case-insensitive value match so entries written by scripts still light up their option
@@ -185,7 +188,10 @@ class BigMultiParamToggleStrBP(BigMultiParamToggleBP):
   def _handle_mouse_release(self, mouse_pos):
     # Advance option and update display (BigMultiToggle), but store the option's VALUE, not its label.
     BigMultiToggle._handle_mouse_release(self, mouse_pos)
-    self._params.put(self._param, self._values[self._options.index(self.value)], block=False)
+    try:
+      self._params.put(self._param, self._values[self._options.index(self.value)], block=False)
+    except Exception:
+      pass
 
 
 

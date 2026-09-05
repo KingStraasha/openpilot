@@ -38,6 +38,12 @@
 4. **Cereal Import Namespace & Symlink**:
    Fixed `from openpilot.cereal` to `from cereal` in `sunnypilot/models/` (`helpers.py`, `fetcher.py`, `manager.py`, `test_manager_download.py`) and added `openpilot/cereal -> ../cereal` symlink. Prevents `ModuleNotFoundError: No module named 'openpilot.cereal'` which caused `manager.py` to crash at startup and left the screen stuck on the boot logo.
 
+5. **`common/params_keys.h` (`BPThemePack`)**:
+   Registered `{"BPThemePack", {PERSISTENT | BACKUP, STRING, ""}}` and added defensive `try/except` fallback in `button_bp.py` (`_load_value`, `_handle_mouse_release`) and `theme_pack.py` (`_param_value`). Prevents `common.params_pyx.UnknownKeyName: b'BPThemePack'` crash in the `ui` process.
+
+6. **`sunnypilot/models/manager.py` (`chestnutPresent`)**:
+   Replaced non-existent `self.sm['deviceState'].chestnutPresent` Cap'n Proto field access with `chestnut_present()` helper function. Prevents `AttributeError: struct has no such member; name = chestnutPresent` loop crash in `models_manager`.
+
 ---
 
 ## What Was Done (vs. bp70)

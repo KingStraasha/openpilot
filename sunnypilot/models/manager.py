@@ -16,6 +16,7 @@ from openpilot.common.swaglog import cloudlog
 from openpilot.system.hardware.hw import Paths
 
 from cereal import messaging, custom
+from openpilot.selfdrive.modeld.helpers import usbgpu_present as chestnut_present
 from openpilot.sunnypilot.models.fetcher import ModelFetcher
 from openpilot.sunnypilot.models.helpers import (ACTIVE_BUNDLE_KEYS, get_active_bundle, get_selected_bundle,
                                                   resolve_bundle_by_ref, validate_active_bundles, verify_file)
@@ -322,7 +323,10 @@ class ModelManagerSP:
     while True:
       try:
         self.sm.update(0)
-        self.chestnut_present = self.sm['deviceState'].chestnutPresent
+        try:
+          self.chestnut_present = chestnut_present()
+        except Exception:
+          self.chestnut_present = False
         self.source_models = {source: self.model_fetcher.get_bundles_for_source(source) for source in ModelFetcher.MODEL_SOURCES}
         self.available_models = self.source_models[ModelFetcher.active_source(self.chestnut_present)]
         validate_active_bundles(self.params, self.source_models)

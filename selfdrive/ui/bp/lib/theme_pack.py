@@ -108,7 +108,10 @@ def _resolve(name: str) -> ThemePack | None:
 
 
 def _param_value(params: Params | None = None) -> str:
-  raw = (params or Params()).get(PARAM_KEY) or ""
+  try:
+    raw = (params or Params()).get(PARAM_KEY) or ""
+  except Exception:
+    return ""
   if isinstance(raw, bytes):
     raw = raw.decode("utf-8", errors="replace")
   return raw.strip()
