@@ -1,10 +1,10 @@
-# ACTIVE_CONTEXT.md — bp70-rebuild (2026-09-03)
+# ACTIVE_CONTEXT.md — bp70 (2026-09-04)
 
-## Mission Complete: Clean Baseline & Surgical Model Port
+## Mission Complete: Clean Baseline, Model Port & Upstream Sync
 
-**Branch:** `bp70-rebuild`
-**Tracking:** `fork/bp70-rebuild` → `https://github.com/KingStraasha/openpilot`
-**Status:** ✅ All 5 phases complete. Ready for on-device deployment.
+**Branch:** `bp70`
+**Tracking:** `fork/bp70` → `https://github.com/KingStraasha/openpilot`
+**Status:** ✅ Model pipeline active & verified on Comma 4; upstream Ford angle-mode enhancements and safety fixes cherry-picked.
 
 ---
 
@@ -12,12 +12,12 @@
 
 | Field | Value |
 |---|---|
-| Base branch | `origin/bp-7.0` |
+| Base branch | `origin/bp-7.0` / `origin/bp-dev` |
 | Base commit | `e1d051d7ba` — "Merge pull request #184 from BluePilotDev/bp-dev" |
-| Rebuild commit | `ae9dd67703` — "fix(models): register params keys, restore capnp metadata field, and fix mici fallback" |
-| Preceding commit | `9cfc9c4aad` — "feat(models): port post-April 2026 SunnyPilot manifests and harden updater" |
+| Rebuild HEAD | `2471dbaf8f` — "MADS: add tests and prevent re-enable at standstill in Pause mode (#1871)" |
 | Tinygrad pin | `ac1632ab966c77ba96a7048b893a30f1a714dc87` (clean origin/bp-7.0 pin) |
 | AGNOS | 18.5 (dynamic fallback in launch_env.sh — not hardcoded) |
+
 
 ---
 
@@ -65,6 +65,22 @@
 10. **`sunnypilot/models/manager.py` (Download Loop & Tmux Output)**:
     - Fixed infinite re-download loop: `_process_download_requests()` previously cleared `ModelManager_DownloadRef` in `_release_download_ref()` but left `ModelManager_DownloadIndex` untouched. On every subsequent 1Hz tick of `main_thread()`, `raw_idx` was still set, re-triggering download of the same model indefinitely. Now cleans up `ModelManager_DownloadIndex` in `finally:` when the active request index finishes.
     - Added direct stdout `print(..., flush=True)` and `cloudlog.warning` across the download lifecycle so chunk progress (`Downloading chunk X/Y...`) displays directly in `tmux capture-pane -pt comma -S -100` even when default `LOGPRINT` is `warning`.
+
+11. **Ford Angle-Mode Advanced Lane Positioning (ALP) (`lane_center_trim.py`, `lateral_angle_ext.py`)**:
+    - Ports StarPilot's curvature-domain trim into `lateral_angle_ext.py` for angle-steered Fords (such as the 2023 Ford F-150 Lightning MK1).
+    - In-lane bias (-0.5m to +0.5m) and lane centering trim now functional on angle mode, not just torque mode.
+    - Added params: `enable_lane_positioning_ang`, `custom_path_offset_ang`, and `lane_centering_strength_ang` (default 0.25).
+    - Fully integrated into Comma 4 UI settings under `selfdrive/ui/bp/mici/layouts/settings/lateral_mici.py`.
+    - Protected by StarPilot safety guards: narrow lane suppression, lane-line variance checks, NaN param protection, rate limiting (`_CORRECTION_ROC_PER_TICK`), and fallback to model position.
+
+12. **Ford Cruise-Button Event Storm Fix (`carstate_ext.py`)**:
+    - Resolves BluePilot PR #193/#195 where holding combo cruise buttons (`Set+`, `Set-`, `Cancel/Resume`) emitted spurious press/release events every frame due to checking derived shared state instead of raw CAN transitions.
+
+13. **Ford Reverse->Drive CommIssue Debounce (`radar_interface.py`, `selfdrived.py`)**:
+    - Resolves BluePilot PR #188/#190 false "Communication Error" alerts on Reverse->Drive shifts by holding Delphi MRR `radarUnavailableTemporary` ~1s during recovery and debouncing `commIssue` catch-all by ~200ms in `selfdrived.py`.
+
+14. **SunnyPilot MADS Standstill Pause Safety Fix (`sunnypilot/mads/mads.py`)**:
+    - Prevents LKAS silent re-enable at a standstill when configured in "Pause on Brake" mode while mechanical or regenerative braking is active.
 
 ---
 
