@@ -15,7 +15,7 @@ from openpilot.common.realtime import Ratekeeper
 from openpilot.common.swaglog import cloudlog
 from openpilot.system.hardware.hw import Paths
 
-from openpilot.cereal import messaging, custom
+from cereal import messaging, custom
 from openpilot.sunnypilot.models.fetcher import ModelFetcher
 from openpilot.sunnypilot.models.helpers import (ACTIVE_BUNDLE_KEYS, get_active_bundle, get_selected_bundle,
                                                   resolve_bundle_by_ref, validate_active_bundles, verify_file)

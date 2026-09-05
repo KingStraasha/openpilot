@@ -19,7 +19,7 @@ from unittest import mock
 import requests
 from urllib3.connectionpool import HTTPConnectionPool
 
-from openpilot.cereal import custom
+from cereal import custom
 from openpilot.common.test import OpenpilotTestCase
 from openpilot.common.file_chunker import get_chunk_name, get_manifest_path
 from openpilot.selfdrive.test.helpers import http_server_context

@@ -13,7 +13,7 @@ from openpilot.common.params import Params
 from openpilot.common.swaglog import cloudlog
 from openpilot.system.hardware.hw import Paths
 from openpilot.sunnypilot.models.helpers import is_bundle_version_compatible
-from openpilot.cereal import custom
+from cereal import custom
 
 
 class ModelParser:

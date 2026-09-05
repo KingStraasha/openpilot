@@ -11,7 +11,7 @@ import pickle
 from pathlib import Path
 import numpy as np
 
-from openpilot.cereal import custom
+from cereal import custom
 from openpilot.common.params import Params
 from openpilot.common.swaglog import cloudlog
 from openpilot.sunnypilot.models.constants import Meta, MetaSimPose, MetaTombRaider

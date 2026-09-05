@@ -35,6 +35,9 @@
 3. **`selfdrive/ui/sunnypilot/mici/layouts/models.py`**:
    Updated fallback to call `get_bundles_for_source("qcom")` (replacing obsolete `get_available_bundles()`).
 
+4. **Cereal Import Namespace & Symlink**:
+   Fixed `from openpilot.cereal` to `from cereal` in `sunnypilot/models/` (`helpers.py`, `fetcher.py`, `manager.py`, `test_manager_download.py`) and added `openpilot/cereal -> ../cereal` symlink. Prevents `ModuleNotFoundError: No module named 'openpilot.cereal'` which caused `manager.py` to crash at startup and left the screen stuck on the boot logo.
+
 ---
 
 ## What Was Done (vs. bp70)
@@ -134,6 +137,9 @@ On-device build is the authoritative gate — see SSH commands below.
 # ── Deploy bp70-rebuild to device ──────────────────────────────────────────
 cd /data/openpilot
 
+# Ensure the fork remote is configured to the KingStraasha repository
+git remote add fork https://github.com/KingStraasha/openpilot.git 2>/dev/null || git remote set-url fork https://github.com/KingStraasha/openpilot.git
+
 # Fetch the new branch from the fork
 git fetch fork bp70-rebuild --no-recurse-submodules
 
@@ -158,11 +164,17 @@ sudo reboot
 
 ### Post-Reboot Validation
 ```bash
-# Verify model manager is running
-logread | grep -i "ModelManager\|model_manager" | tail -20
+# Verify model manager is running (process check)
+pgrep -af "models.manager"
 
-# Verify updater logging
-tail -f /data/openpilot/updater.log
+# Check model manager logs via journalctl
+journalctl -u comma --no-pager -n 100 | grep -iE "ModelManager|models_manager"
+
+# Verify updated daemon is running (and check its logs)
+pgrep -af "updated"
+journalctl -u comma --no-pager -n 50 | grep -i "updated"
+# Note: /data/openpilot/updater.log will be created on the first update fetch cycle
+ls -la /data/openpilot/updater.log 2>/dev/null || echo "updater.log will be created on first update cycle"
 
 # Verify model manifest fetch
 python3 -c "
@@ -173,8 +185,8 @@ bundles = f.get_model_list('qcom')
 print(f'qcom bundles: {len(bundles)}')
 "
 
-# If UI crashes on model screen, check:
-logread | grep -i "error\|crash\|exception" | grep -i "model" | tail -20
+# If UI crashes or has issues, check recent errors via journalctl:
+journalctl -u comma --no-pager -n 100 | grep -iE "error|crash|exception" | tail -30
 ```
 
 ---
