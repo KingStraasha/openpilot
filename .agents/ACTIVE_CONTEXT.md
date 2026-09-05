@@ -158,6 +158,7 @@ On-device build is the authoritative gate — verified below.
 | Raylib UI Display Server (`msm_drm`) | ✅ PASS (rendering without crash) |
 | Panda Hardware Communication | ✅ PASS (SPI connected, signature verified) |
 | Live Model Manifest Fetch (`qcom`) | ✅ PASS (77 bundles fetched & parsed live) |
+| Live Model Download (Chunked/HuggingFace) | ✅ PASS (downloaded, verified & activated on-device) |
 | BluePilot Portal Web Backend | ✅ PASS (active, ffmpeg & params detected) |
 
 ---
