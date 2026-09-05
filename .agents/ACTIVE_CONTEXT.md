@@ -44,6 +44,9 @@
 6. **`sunnypilot/models/manager.py` (`chestnutPresent`)**:
    Replaced non-existent `self.sm['deviceState'].chestnutPresent` Cap'n Proto field access with `chestnut_present()` helper function. Prevents `AttributeError: struct has no such member; name = chestnutPresent` loop crash in `models_manager`.
 
+7. **`cereal/custom.capnp` & `fetcher.py` (`chunked` Model Type)**:
+   Added `chunked @6;` to `ModelManagerSP.Model.Type` in `custom.capnp` and added fallback handling in `fetcher.py` (`_parse_model`) and `helpers.py` (`_get_model`). Prevents `AttributeError: enum has no such enumerant; name = chunked` when downloading v21/v22 model manifests.
+
 ---
 
 ## What Was Done (vs. bp70)

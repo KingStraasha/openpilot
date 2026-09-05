@@ -61,7 +61,12 @@ class ModelParser:
   def _parse_model(model_data) -> custom.ModelManagerSP.Model:
     model = custom.ModelManagerSP.Model()
 
-    model.type = model_data.get("type")
+    model_type = model_data.get("type", "supercombo")
+    try:
+      model.type = model_type
+    except Exception:
+      # Fallback if Cap'n Proto schema hasn't recompiled with chunked yet
+      model.type = custom.ModelManagerSP.Model.Type.supercombo
     model.artifact = ModelParser._parse_artifact(model_data.get("artifact", {}))
     return model
 

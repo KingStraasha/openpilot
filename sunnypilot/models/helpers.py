@@ -196,7 +196,10 @@ def get_active_model_runner(params: Params | None = None, force_check: bool = Fa
 
 def _get_model():
   if bundle := get_active_bundle():
-    drive_model = next(model for model in bundle.models if model.type == ModelManager.Model.Type.supercombo)
+    drive_model = next((m for m in bundle.models if m.type == ModelManager.Model.Type.supercombo or
+                        (hasattr(ModelManager.Model.Type, "chunked") and m.type == ModelManager.Model.Type.chunked)), None)
+    if drive_model is None and len(bundle.models) > 0:
+      drive_model = bundle.models[0]
     return drive_model
   return None
 
